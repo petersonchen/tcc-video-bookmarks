@@ -83,10 +83,29 @@
       }
 
       const cue = () => {
+        // Pause before seeking, but do not pause again immediately after
+        // assigning currentTime. Some streaming players can get stuck in a
+        // perpetual loading state if playback state is changed mid-seek.
         video.pause();
+
+        let replied = false;
+        const finish = () => {
+          if (replied) return;
+          replied = true;
+          cleanup();
+          sendResponse({ ok: true, time: target, formattedTime: formatTime(target) });
+        };
+        const cleanup = () => {
+          video.removeEventListener("seeked", finish);
+          video.removeEventListener("canplay", finish);
+        };
+
+        video.addEventListener("seeked", finish, { once: true });
+        video.addEventListener("canplay", finish, { once: true });
         video.currentTime = target;
-        video.pause();
-        sendResponse({ ok: true, time: target, formattedTime: formatTime(target) });
+
+        // Fallback: seeking may complete without either event on some players.
+        setTimeout(finish, 2500);
       };
 
       if (video.readyState >= 1) {
