@@ -70,16 +70,47 @@ function render() {
     const cue = document.createElement("button");
     cue.className = "cue";
     cue.textContent = "CUE";
-    cue.addEventListener("click", () => {
-      chrome.tabs.sendMessage(activeTab.id, { type: "TCC_CUE", time: bookmark.time }).catch(() => {});
+    cue.addEventListener("click", async () => {
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: activeTab.id },
+          world: "MAIN",
+          func: (target) => {
+            const player = window.videojs?.getPlayer?.("vdoVideo") || window.videojs?.("vdoVideo");
+            if (!player) throw new Error("Video.js player not found");
+            player.pause();
+            player.currentTime(target);
+          },
+          args: [bookmark.time]
+        });
+      } catch (error) {
+        console.error("[TCC Bookmarks] Video.js CUE failed", error);
+      }
       window.close();
     });
 
     const play = document.createElement("button");
     play.className = "play";
     play.textContent = "PLAY";
-    play.addEventListener("click", () => {
-      chrome.tabs.sendMessage(activeTab.id, { type: "TCC_PLAY", time: bookmark.time }).catch(() => {});
+    play.addEventListener("click", async () => {
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: activeTab.id },
+          world: "MAIN",
+          func: (target) => {
+            const player = window.videojs?.getPlayer?.("vdoVideo") || window.videojs?.("vdoVideo");
+            if (!player) throw new Error("Video.js player not found");
+            player.pause();
+            player.one("seeked", () => {
+              Promise.resolve(player.play()).catch(() => {});
+            });
+            player.currentTime(target);
+          },
+          args: [bookmark.time]
+        });
+      } catch (error) {
+        console.error("[TCC Bookmarks] Video.js PLAY failed", error);
+      }
       window.close();
     });
 
