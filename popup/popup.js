@@ -54,27 +54,17 @@ function render() {
     const cue = document.createElement("button");
     cue.className = "cue";
     cue.textContent = "CUE";
-    cue.addEventListener("click", async () => {
-      try {
-        const response = await message({ type: "TCC_CUE", time: bookmark.time });
-        if (!response?.ok) throw new Error(response?.error || "CUE 失敗");
-        window.close();
-      } catch (error) {
-        showError(error.message);
-      }
+    cue.addEventListener("click", () => {
+      chrome.tabs.sendMessage(activeTab.id, { type: "TCC_CUE", time: bookmark.time }).catch(() => {});
+      window.close();
     });
 
     const play = document.createElement("button");
     play.className = "play";
     play.textContent = "PLAY";
-    play.addEventListener("click", async () => {
-      try {
-        const response = await message({ type: "TCC_PLAY", time: bookmark.time });
-        if (!response?.ok) throw new Error(response?.error || "PLAY 失敗");
-        window.close();
-      } catch (error) {
-        showError(error.message);
-      }
+    play.addEventListener("click", () => {
+      chrome.tabs.sendMessage(activeTab.id, { type: "TCC_PLAY", time: bookmark.time }).catch(() => {});
+      window.close();
     });
 
     const remove = document.createElement("button");
