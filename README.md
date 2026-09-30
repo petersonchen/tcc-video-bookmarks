@@ -2,7 +2,7 @@
 
 **Video Cue Bookmarks** 是一套 Chrome / Microsoft Edge 瀏覽器擴充功能，讓影音操作人員可以在支援的網站影片中建立時間書籤，並快速定位、預備及播放指定片段。
 
-本專案採「單一 Extension、多網站支援」的方向設計。每個網站可使用自己的播放器整合方式；目前第一個支援的網站為臺北市議會雲端議事影音。
+本專案採「單一 Extension、多網站支援」的方向設計。網站專屬的播放器控制封裝為 Site Adapter；目前第一個 Adapter 為 `sites/tcc.js`，支援臺北市議會雲端議事影音。
 
 ## 功能
 
@@ -34,7 +34,15 @@
 - 播放器：Video.js / VHS
 - 支援 Bookmark、CUE、PLAY 與直接輸入 Timecode 播放
 
-未來新增網站時，將個別加入該網站所需的播放器控制邏輯與網站權限，不會預先要求存取所有網站。
+未來新增網站時，只需增加對應的 Site Adapter 與該網站必要的權限，不需要修改共用 Bookmark UI，也不會預先要求存取所有網站。
+
+### Site Adapter 架構
+
+- `popup/popup.js`：共用 Bookmark UI、儲存與操作流程
+- `sites/tcc.js`：臺北市議會網站判斷，以及 Video.js 的 CUE / PLAY 控制
+- `content/video-controller.js`：目前負責從 TCC 頁面取得影片狀態與穩定的影片識別資訊
+
+新增其他網站時，可依 `sites/tcc.js` 的介面實作 `matches()`、`getState()`、`cue()` 與 `play()`。
 
 ## 支援瀏覽器
 
