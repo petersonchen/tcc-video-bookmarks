@@ -1,7 +1,7 @@
 * { box-sizing: border-box; }
 body {
   margin: 0;
-  width: 390px;
+  width: 420px;
   min-height: 260px;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   color: #1f2937;
@@ -9,6 +9,8 @@ body {
 }
 main { padding: 16px; }
 header { margin-bottom: 14px; }
+.title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.version { color: #94a3b8; font-size: 11px; font-variant-numeric: tabular-nums; }
 h1 { margin: 0 0 5px; font-size: 18px; }
 .muted { color: #64748b; font-size: 12px; }
 .hidden { display: none !important; }
@@ -59,7 +61,7 @@ button {
 }
 .bookmark {
   display: grid;
-  grid-template-columns: 74px 1fr auto auto auto;
+  grid-template-columns: 82px minmax(90px, 1fr) auto auto auto;
   gap: 7px;
   align-items: center;
   padding: 9px;
@@ -67,29 +69,14 @@ button {
   border-radius: 8px;
   background: #fff;
 }
+.bookmark-edit { min-width: 0; padding: 6px 7px; border-color: transparent; background: #f8fafc; font-size: 12px; }
+.bookmark-edit:focus { border-color: #94a3b8; background: #fff; outline: none; }
 .bookmark-time { font-variant-numeric: tabular-nums; font-weight: 700; }
-.bookmark-note { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.bookmark-note { font-size: 13px; }
 .cue { background: #e2e8f0; color: #0f172a; }
 .play { background: #0f172a; color: white; }
 .delete { background: transparent; color: #94a3b8; font-size: 16px; padding: 4px 6px; }
 .empty { text-align: center; font-size: 13px; }
-
-.debug { margin-top: 16px; font-size: 12px; }
-.debug summary { cursor: pointer; font-weight: 700; color: #64748b; }
-.debug pre {
-  max-height: 220px;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-  padding: 9px;
-  border-radius: 7px;
-  background: #0f172a;
-  color: #e2e8f0;
-  font-size: 10px;
-  line-height: 1.4;
-}
-.debug-actions { display: flex; gap: 7px; }
-.debug-actions button { background: #e2e8f0; color: #0f172a; }
 
 .goto-row {
   display: grid;
