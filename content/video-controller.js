@@ -89,76 +89,80 @@
         video.pause();
 
         let replied = false;
-        let fallbackTimer;
+        let recoveryUsed = false;
+        let timeout;
+
+        const cleanup = () => {
+          clearTimeout(timeout);
+          video.removeEventListener("waiting", recover);
+          video.removeEventListener("stalled", recover);
+          video.removeEventListener("playing", onPlaying);
+        };
 
         const respond = (ok, error) => {
           if (replied) return;
           replied = true;
-          clearTimeout(fallbackTimer);
-          if (ok) {
-            sendResponse({
-              ok: true,
-              time: target,
-              formattedTime: formatTime(target),
-              playing: shouldPlay
-            });
-          } else {
-            sendResponse({ ok: false, error });
-          }
+          cleanup();
+          sendResponse(ok
+            ? { ok: true, time: target, formattedTime: formatTime(target), playing: shouldPlay }
+            : { ok: false, error });
         };
 
-        const playIfNeeded = async () => {
+        const recover = () => {
+          if (!shouldPlay || !isBackwardSeek || recoveryUsed) return;
+          recoveryUsed = true;
+
+          // Manual movement of the scrubber is known to wake this player up
+          // after a backward seek. Reproduce that with a tiny second seek
+          // *after* playback has entered waiting/stalled.
+          const nudge = Math.min(
+            Number.isFinite(video.duration) ? Math.max(0, video.duration - 0.1) : target + 0.35,
+            target + 0.35
+          );
+          video.currentTime = nudge;
+
+          setTimeout(() => {
+            video.play().catch(() => {});
+          }, 120);
+        };
+
+        const onPlaying = () => respond(true);
+
+        const startPlayback = async () => {
           if (!shouldPlay) {
             respond(true);
             return;
           }
-          await new Promise((resolve) => setTimeout(resolve, 120));
+
+          video.addEventListener("waiting", recover);
+          video.addEventListener("stalled", recover);
+          video.addEventListener("playing", onPlaying, { once: true });
+
           try {
             await video.play();
-            respond(true);
           } catch {
             respond(false, "已跳到時間點，但播放器無法開始播放。");
           }
         };
 
-        const finalSeek = () => {
-          const done = () => {
-            video.removeEventListener("seeked", done);
-            playIfNeeded();
-          };
-          video.addEventListener("seeked", done, { once: true });
-          video.currentTime = target;
+        const onSeeked = () => {
+          video.removeEventListener("seeked", onSeeked);
+          setTimeout(startPlayback, 100);
         };
 
-        if (isBackwardSeek) {
-          // Backward HLS seeks on this site can stall when jumping directly to
-          // the target. Prime the stream from a few seconds before the bookmark,
-          // briefly let it fetch/decode data, then perform the exact seek.
-          const warmupTime = Math.max(0, target - 4);
-          const warmed = async () => {
-            video.removeEventListener("seeked", warmed);
-            try {
-              await video.play();
-              await new Promise((resolve) => setTimeout(resolve, 450));
-              video.pause();
-            } catch {
-              // Even if autoplay is rejected, still try the exact seek.
-            }
-            finalSeek();
-          };
-          video.addEventListener("seeked", warmed, { once: true });
-          video.currentTime = warmupTime;
-        } else {
-          finalSeek();
-        }
+        video.addEventListener("seeked", onSeeked, { once: true });
+        video.currentTime = target;
 
-        fallbackTimer = setTimeout(() => {
-          if (!video.seeking && Math.abs(video.currentTime - target) < 1.5) {
-            playIfNeeded();
-          } else {
+        timeout = setTimeout(() => {
+          if (shouldPlay && isBackwardSeek && !recoveryUsed) {
+            recover();
+            timeout = setTimeout(() => {
+              if (!replied) respond(false, "往回跳轉後播放器仍未恢復。");
+            }, 4000);
+          } else if (!replied) {
             respond(false, "播放器在跳轉時間點時逾時。");
           }
-        }, 6000);
+        }, 3500);
       };
 
       if (video.readyState >= 1) {
