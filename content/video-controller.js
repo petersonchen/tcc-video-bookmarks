@@ -144,19 +144,19 @@
         const recover = () => {
           if (!shouldPlay || !isBackwardSeek || recoveryUsed) return;
           recoveryUsed = true;
+          debug("backward-recovery");
 
-          // Manual movement of the scrubber is known to wake this player up
-          // after a backward seek. Reproduce that with a tiny second seek
-          // *after* playback has entered waiting/stalled.
-          const nudge = Math.min(
-            Number.isFinite(video.duration) ? Math.max(0, video.duration - 0.1) : target + 0.35,
-            target + 0.35
-          );
-          video.currentTime = nudge;
+          // If fastSeek is available, ask the browser media pipeline to perform
+          // another keyframe-aware seek instead of assigning currentTime again.
+          if (typeof video.fastSeek === "function") {
+            video.fastSeek(target);
+          } else {
+            video.currentTime = target;
+          }
 
           setTimeout(() => {
             video.play().catch(() => {});
-          }, 120);
+          }, 250);
         };
 
         const onPlaying = () => respond(true);
@@ -184,7 +184,13 @@
         };
 
         video.addEventListener("seeked", onSeeked, { once: true });
-        video.currentTime = target;
+
+        if (isBackwardSeek && typeof video.fastSeek === "function") {
+          debug("fastSeek");
+          video.fastSeek(target);
+        } else {
+          video.currentTime = target;
+        }
 
         timeout = setTimeout(() => {
           if (shouldPlay && isBackwardSeek && !recoveryUsed) {
