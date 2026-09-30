@@ -73,3 +73,20 @@ button {
 .play { background: #0f172a; color: white; }
 .delete { background: transparent; color: #94a3b8; font-size: 16px; padding: 4px 6px; }
 .empty { text-align: center; font-size: 13px; }
+
+.debug { margin-top: 16px; font-size: 12px; }
+.debug summary { cursor: pointer; font-weight: 700; color: #64748b; }
+.debug pre {
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 9px;
+  border-radius: 7px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 10px;
+  line-height: 1.4;
+}
+.debug-actions { display: flex; gap: 7px; }
+.debug-actions button { background: #e2e8f0; color: #0f172a; }
