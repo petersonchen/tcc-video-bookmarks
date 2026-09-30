@@ -91,18 +91,6 @@
         // previously buffered position and can fire too early on HLS players.
         video.pause();
 
-        // TCC's streaming player is much more likely to stall on a backward
-        // seek. A real HTMLVideoElement has no stop(), so for backward jumps
-        // reload the current media resource to discard stale streaming state
-        // before seeking. Forward seeks keep the faster normal path.
-        if (isBackwardSeek) {
-          const source = video.currentSrc || video.src || video.querySelector("source")?.src;
-          if (source) {
-            video.src = source;
-            video.load();
-          }
-        }
-
         let replied = false;
         let seekFinished = false;
         let fallbackTimer;
@@ -150,11 +138,7 @@
           video.currentTime = target;
         };
 
-        if (isBackwardSeek && video.readyState < 1) {
-          video.addEventListener("loadedmetadata", seekToTarget, { once: true });
-        } else {
-          seekToTarget();
-        }
+        seekToTarget();
 
         // Defensive fallback for players that occasionally omit seeked.
         fallbackTimer = setTimeout(() => {
