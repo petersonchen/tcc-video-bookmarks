@@ -97,7 +97,70 @@
     if (video) observeVideo(video);
   }).observe(document.documentElement, { childList: true, subtree: true });
 
+  async function logPlayerInspector() {
+    const video = findVideo();
+    if (!video) return;
+
+    const selectors = [
+      'input[type="range"]',
+      '[role="slider"]',
+      'progress',
+      '.progress',
+      '.progress-bar',
+      '[class*="seek"]',
+      '[class*="timeline"]',
+      '[class*="progress"]'
+    ];
+    const controls = [...new Set(selectors.flatMap((selector) =>
+      [...document.querySelectorAll(selector)]
+    ))].slice(0, 20).map((el) => ({
+      tag: el.tagName,
+      id: el.id || "",
+      className: typeof el.className === "string" ? el.className : "",
+      type: el.getAttribute("type") || "",
+      role: el.getAttribute("role") || "",
+      min: el.getAttribute("min") || "",
+      max: el.getAttribute("max") || "",
+      value: el.value ?? el.getAttribute("aria-valuenow") ?? ""
+    }));
+
+    const scripts = [...document.scripts]
+      .map((s) => s.src)
+      .filter(Boolean)
+      .map((src) => {
+        try { return new URL(src).pathname.split("/").pop(); }
+        catch { return src; }
+      })
+      .filter((name) => /player|video|hls|media|jw|clappr|flow|plyr/i.test(name))
+      .slice(0, 30);
+
+    const entry = {
+      at: new Date().toISOString(),
+      event: "PLAYER_INSPECTOR",
+      currentTime: Number((video.currentTime || 0).toFixed(2)),
+      target: null,
+      backward: null,
+      paused: video.paused,
+      seeking: video.seeking,
+      readyState: video.readyState,
+      networkState: video.networkState,
+      buffered: [],
+      controls,
+      scripts,
+      videoParent: video.parentElement?.outerHTML?.slice(0, 4000) || ""
+    };
+
+    console.log("[TCC Bookmarks] PLAYER_INSPECTOR", entry);
+    const { debugLog = [] } = await chrome.storage.local.get("debugLog");
+    await chrome.storage.local.set({ debugLog: [...debugLog, entry].slice(-80) });
+  }
+
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message?.type === "TCC_INSPECT_PLAYER") {
+      logPlayerInspector().then(() => sendResponse({ ok: true }));
+      return true;
+    }
+
     if (message?.type === "TCC_GET_VIDEO_STATE") {
       const video = findVideo();
       if (!video) {
