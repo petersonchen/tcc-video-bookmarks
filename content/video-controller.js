@@ -85,32 +85,62 @@
       const shouldPlay = message.type === "TCC_PLAY";
 
       const cue = () => {
-        // Pause before seeking, but do not pause again immediately after
-        // assigning currentTime. Some streaming players can get stuck in a
-        // perpetual loading state if playback state is changed mid-seek.
+        // Treat seeking as a small state machine. In particular, do not use
+        // "canplay" as proof that a new seek completed: it may describe the
+        // previously buffered position and can fire too early on HLS players.
         video.pause();
 
         let replied = false;
-        const finish = () => {
+        let seekFinished = false;
+        let fallbackTimer;
+
+        const cleanup = () => {
+          clearTimeout(fallbackTimer);
+          video.removeEventListener("seeked", onSeeked);
+        };
+
+        const finish = async () => {
           if (replied) return;
           replied = true;
           cleanup();
+
           if (shouldPlay) {
-            video.play().catch(() => {});
+            // Give the streaming player one event-loop turn to settle its
+            // internal buffer after seeked before asking it to play.
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            try {
+              await video.play();
+            } catch {
+              sendResponse({ ok: false, error: "已跳到時間點，但播放器無法開始播放。" });
+              return;
+            }
           }
-          sendResponse({ ok: true, time: target, formattedTime: formatTime(target), playing: shouldPlay });
-        };
-        const cleanup = () => {
-          video.removeEventListener("seeked", finish);
-          video.removeEventListener("canplay", finish);
+
+          sendResponse({
+            ok: true,
+            time: target,
+            formattedTime: formatTime(target),
+            playing: shouldPlay
+          });
         };
 
-        video.addEventListener("seeked", finish, { once: true });
-        video.addEventListener("canplay", finish, { once: true });
+        const onSeeked = () => {
+          if (seekFinished) return;
+          seekFinished = true;
+          finish();
+        };
+
+        video.addEventListener("seeked", onSeeked, { once: true });
+
+        // fastSeek can be less exact, so use currentTime for bookmark accuracy.
         video.currentTime = target;
 
-        // Fallback: seeking may complete without either event on some players.
-        setTimeout(finish, 2500);
+        // Defensive fallback for players that occasionally omit seeked.
+        fallbackTimer = setTimeout(() => {
+          if (!video.seeking && Math.abs(video.currentTime - target) < 1.5) {
+            finish();
+          }
+        }, 3000);
       };
 
       if (video.readyState >= 1) {
