@@ -9,7 +9,7 @@
 <body>
   <main>
     <header>
-      <h1>TCC Video Bookmarks</h1>
+      <div class="title-row"><h1>TCC Video Bookmarks</h1><span id="version" class="version"></span></div>
       <div id="videoTitle" class="muted">正在讀取影片…</div>
     </header>
 
@@ -38,15 +38,7 @@
       <div id="bookmarks"></div>
       <div id="empty" class="empty">尚未建立 Bookmark</div>
 
-      <details class="debug">
-        <summary>Debug Log</summary>
-        <pre id="debugLog">尚無紀錄</pre>
-        <div class="debug-actions">
-          <button id="inspectPlayer">Inspect Player</button>
-          <button id="copyDebug">Copy Log</button>
-          <button id="clearDebug">Clear</button>
-        </div>
-      </details>
+
     </section>
   </main>
   <script src="popup.js"></script>
