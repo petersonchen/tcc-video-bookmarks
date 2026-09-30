@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TCC Video Bookmarks</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>TCC Video Bookmarks</h1>
+      <div id="videoTitle" class="muted">正在讀取影片…</div>
+    </header>
+
+    <section id="unsupported" class="notice hidden"></section>
+
+    <section id="controls" class="hidden">
+      <div class="time-row">
+        <span>目前時間</span>
+        <strong id="currentTime">00:00:00</strong>
+      </div>
+
+      <label for="note">Bookmark 說明</label>
+      <input id="note" type="text" maxlength="120" placeholder="例如：交通局回答">
+      <button id="save" class="primary">＋ 儲存目前位置</button>
+
+      <div class="section-title">
+        <span>這支影片的 Bookmarks</span>
+        <span id="count" class="muted"></span>
+      </div>
+      <div id="bookmarks"></div>
+      <div id="empty" class="empty">尚未建立 Bookmark</div>
+    </section>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>
