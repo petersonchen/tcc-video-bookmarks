@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "TCC Video Bookmarks",
+  "version": "0.1.0",
+  "description": "Save and cue timecode bookmarks for Taipei City Council videos.",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["https://live.tcc.gov.tw/*"],
+  "action": {
+    "default_title": "TCC Video Bookmarks",
+    "default_popup": "popup/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://live.tcc.gov.tw/*"],
+      "js": ["content/video-controller.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}
