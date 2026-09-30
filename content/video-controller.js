@@ -83,12 +83,25 @@
       }
 
       const shouldPlay = message.type === "TCC_PLAY";
+      const isBackwardSeek = target < video.currentTime - 1;
 
       const cue = () => {
         // Treat seeking as a small state machine. In particular, do not use
         // "canplay" as proof that a new seek completed: it may describe the
         // previously buffered position and can fire too early on HLS players.
         video.pause();
+
+        // TCC's streaming player is much more likely to stall on a backward
+        // seek. A real HTMLVideoElement has no stop(), so for backward jumps
+        // reload the current media resource to discard stale streaming state
+        // before seeking. Forward seeks keep the faster normal path.
+        if (isBackwardSeek) {
+          const source = video.currentSrc || video.src || video.querySelector("source")?.src;
+          if (source) {
+            video.src = source;
+            video.load();
+          }
+        }
 
         let replied = false;
         let seekFinished = false;
@@ -132,8 +145,16 @@
 
         video.addEventListener("seeked", onSeeked, { once: true });
 
-        // fastSeek can be less exact, so use currentTime for bookmark accuracy.
-        video.currentTime = target;
+        const seekToTarget = () => {
+          // fastSeek can be less exact, so use currentTime for bookmark accuracy.
+          video.currentTime = target;
+        };
+
+        if (isBackwardSeek && video.readyState < 1) {
+          video.addEventListener("loadedmetadata", seekToTarget, { once: true });
+        } else {
+          seekToTarget();
+        }
 
         // Defensive fallback for players that occasionally omit seeked.
         fallbackTimer = setTimeout(() => {
