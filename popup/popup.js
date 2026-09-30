@@ -32,6 +32,19 @@ async function persist() {
   await chrome.storage.local.set({ [storageKey(state.videoKey)]: bookmarks });
 }
 
+function debugText(entries) {
+  return entries.map((e) => {
+    const time = new Date(e.at).toLocaleTimeString("zh-TW", { hour12: false });
+    const buffered = (e.buffered || []).map((r) => `${r[0]}-${r[1]}`).join(",");
+    return `${time} ${e.event} current=${e.currentTime} target=${e.target} ${e.backward ? "BACKWARD" : "FORWARD"} paused=${e.paused} seeking=${e.seeking} ready=${e.readyState} network=${e.networkState} buffer=[${buffered}]`;
+  }).join("\n");
+}
+
+async function loadDebug() {
+  const { debugLog = [] } = await chrome.storage.local.get("debugLog");
+  $("debugLog").textContent = debugLog.length ? debugText(debugLog) : "尚無紀錄";
+}
+
 function render() {
   const list = $("bookmarks");
   list.textContent = "";
@@ -112,6 +125,7 @@ async function init() {
   $("note").value = `Bookmark ${state.formattedTime}`;
   $("controls").classList.remove("hidden");
   await loadBookmarks();
+  await loadDebug();
   $("note").focus();
   $("note").select();
 }
@@ -137,6 +151,18 @@ $("save").addEventListener("click", async () => {
   } catch (error) {
     showError(error.message);
   }
+});
+
+$("copyDebug").addEventListener("click", async () => {
+  const { debugLog = [] } = await chrome.storage.local.get("debugLog");
+  await navigator.clipboard.writeText(debugText(debugLog));
+  $("copyDebug").textContent = "Copied";
+  setTimeout(() => { $("copyDebug").textContent = "Copy Log"; }, 1000);
+});
+
+$("clearDebug").addEventListener("click", async () => {
+  await chrome.storage.local.remove("debugLog");
+  await loadDebug();
 });
 
 $("note").addEventListener("keydown", (event) => {
