@@ -51,6 +51,52 @@
     return [h, m, s].map((n) => String(n).padStart(2, "0")).join(":");
   }
 
+  // Passive diagnostics also capture seeks initiated by the site's own
+  // timeline controls. This lets us compare a successful manual backward
+  // seek with an extension-initiated backward seek.
+  const observedVideos = new WeakSet();
+
+  function observeVideo(video) {
+    if (!video || observedVideos.has(video)) return;
+    observedVideos.add(video);
+
+    const write = (event) => {
+      const ranges = [];
+      for (let i = 0; i < video.buffered.length; i += 1) {
+        ranges.push([
+          Number(video.buffered.start(i).toFixed(2)),
+          Number(video.buffered.end(i).toFixed(2))
+        ]);
+      }
+      const entry = {
+        at: new Date().toISOString(),
+        event: `native:${event}`,
+        currentTime: Number((video.currentTime || 0).toFixed(2)),
+        target: null,
+        backward: null,
+        paused: video.paused,
+        seeking: video.seeking,
+        readyState: video.readyState,
+        networkState: video.networkState,
+        buffered: ranges
+      };
+      console.log("[TCC Bookmarks]", entry.event, entry);
+      chrome.storage.local.get("debugLog").then(({ debugLog = [] }) =>
+        chrome.storage.local.set({ debugLog: [...debugLog, entry].slice(-80) })
+      ).catch(() => {});
+    };
+
+    ["play", "pause", "seeking", "seeked", "waiting", "stalled", "canplay", "playing", "loadedmetadata", "error"]
+      .forEach((name) => video.addEventListener(name, () => write(name)));
+  }
+
+  const initialVideo = findVideo();
+  if (initialVideo) observeVideo(initialVideo);
+  new MutationObserver(() => {
+    const video = findVideo();
+    if (video) observeVideo(video);
+  }).observe(document.documentElement, { childList: true, subtree: true });
+
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type === "TCC_GET_VIDEO_STATE") {
       const video = findVideo();
