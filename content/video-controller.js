@@ -86,66 +86,79 @@
       const isBackwardSeek = target < video.currentTime - 1;
 
       const cue = () => {
-        // Treat seeking as a small state machine. In particular, do not use
-        // "canplay" as proof that a new seek completed: it may describe the
-        // previously buffered position and can fire too early on HLS players.
         video.pause();
 
         let replied = false;
-        let seekFinished = false;
         let fallbackTimer;
 
-        const cleanup = () => {
-          clearTimeout(fallbackTimer);
-          video.removeEventListener("seeked", onSeeked);
-        };
-
-        const finish = async () => {
+        const respond = (ok, error) => {
           if (replied) return;
           replied = true;
-          cleanup();
-
-          if (shouldPlay) {
-            // Give the streaming player one event-loop turn to settle its
-            // internal buffer after seeked before asking it to play.
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            try {
-              await video.play();
-            } catch {
-              sendResponse({ ok: false, error: "已跳到時間點，但播放器無法開始播放。" });
-              return;
-            }
+          clearTimeout(fallbackTimer);
+          if (ok) {
+            sendResponse({
+              ok: true,
+              time: target,
+              formattedTime: formatTime(target),
+              playing: shouldPlay
+            });
+          } else {
+            sendResponse({ ok: false, error });
           }
-
-          sendResponse({
-            ok: true,
-            time: target,
-            formattedTime: formatTime(target),
-            playing: shouldPlay
-          });
         };
 
-        const onSeeked = () => {
-          if (seekFinished) return;
-          seekFinished = true;
-          finish();
+        const playIfNeeded = async () => {
+          if (!shouldPlay) {
+            respond(true);
+            return;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 120));
+          try {
+            await video.play();
+            respond(true);
+          } catch {
+            respond(false, "已跳到時間點，但播放器無法開始播放。");
+          }
         };
 
-        video.addEventListener("seeked", onSeeked, { once: true });
-
-        const seekToTarget = () => {
-          // fastSeek can be less exact, so use currentTime for bookmark accuracy.
+        const finalSeek = () => {
+          const done = () => {
+            video.removeEventListener("seeked", done);
+            playIfNeeded();
+          };
+          video.addEventListener("seeked", done, { once: true });
           video.currentTime = target;
         };
 
-        seekToTarget();
+        if (isBackwardSeek) {
+          // Backward HLS seeks on this site can stall when jumping directly to
+          // the target. Prime the stream from a few seconds before the bookmark,
+          // briefly let it fetch/decode data, then perform the exact seek.
+          const warmupTime = Math.max(0, target - 4);
+          const warmed = async () => {
+            video.removeEventListener("seeked", warmed);
+            try {
+              await video.play();
+              await new Promise((resolve) => setTimeout(resolve, 450));
+              video.pause();
+            } catch {
+              // Even if autoplay is rejected, still try the exact seek.
+            }
+            finalSeek();
+          };
+          video.addEventListener("seeked", warmed, { once: true });
+          video.currentTime = warmupTime;
+        } else {
+          finalSeek();
+        }
 
-        // Defensive fallback for players that occasionally omit seeked.
         fallbackTimer = setTimeout(() => {
           if (!video.seeking && Math.abs(video.currentTime - target) < 1.5) {
-            finish();
+            playIfNeeded();
+          } else {
+            respond(false, "播放器在跳轉時間點時逾時。");
           }
-        }, 3000);
+        }, 6000);
       };
 
       if (video.readyState >= 1) {
