@@ -4,22 +4,41 @@
     return videos.find((video) => Number.isFinite(video.duration) && video.duration > 0) || videos[0] || null;
   }
 
+  function stablePageUrl() {
+    const url = new URL(location.href);
+    url.hash = "";
+
+    // Remove common volatile playback/session parameters while retaining
+    // parameters that identify the actual TCC video page.
+    const volatile = /^(token|auth|signature|sig|expires?|timestamp|ts|session|cache|_)/i;
+    [...url.searchParams.keys()].forEach((key) => {
+      if (volatile.test(key)) url.searchParams.delete(key);
+    });
+
+    // URLSearchParams order can vary; sorting keeps the bookmark key stable.
+    url.searchParams.sort();
+    return url.href;
+  }
+
   function pageIdentity(video) {
-    const source =
-      video?.currentSrc ||
-      video?.src ||
-      video?.querySelector("source")?.src ||
+    // Do NOT use currentSrc as the primary key. Streaming URLs can contain
+    // temporary tokens and change after every page reload.
+    const pageUrl = stablePageUrl();
+
+    // Prefer stable identifiers exposed by the page/player when present.
+    const stableId =
+      video?.dataset?.videoId ||
+      video?.dataset?.id ||
+      document.querySelector("[data-video-id]")?.dataset?.videoId ||
+      new URL(pageUrl).searchParams.get("id") ||
+      new URL(pageUrl).searchParams.get("videoId") ||
+      new URL(pageUrl).searchParams.get("VideoId") ||
       "";
 
-    // Prefer a media URL when available; otherwise use the page URL.
-    // Hash is intentionally excluded so navigation fragments do not create duplicates.
-    const pageUrl = new URL(location.href);
-    pageUrl.hash = "";
-
     return {
-      videoKey: source ? `media:${source}` : `page:${pageUrl.href}`,
-      pageUrl: pageUrl.href,
-      mediaUrl: source,
+      videoKey: stableId ? `tcc:${stableId}` : `page:${pageUrl}`,
+      pageUrl,
+      mediaUrl: video?.currentSrc || video?.src || video?.querySelector("source")?.src || "",
       pageTitle: document.title.trim()
     };
   }
