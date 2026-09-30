@@ -12,6 +12,38 @@ function formatTime(totalSeconds) {
   return [h, m, s].map((n) => String(n).padStart(2, "0")).join(":");
 }
 
+function parseTimecode(value) {
+  const parts = value.trim().split(":").map((part) => Number(part));
+  if (parts.some((part) => !Number.isFinite(part) || part < 0)) return null;
+
+  let seconds;
+  if (parts.length === 3) seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+  else if (parts.length === 2) seconds = parts[0] * 60 + parts[1];
+  else if (parts.length === 1) seconds = parts[0];
+  else return null;
+
+  if (parts.length >= 2 && parts[parts.length - 1] >= 60) return null;
+  if (parts.length === 3 && parts[1] >= 60) return null;
+  return seconds;
+}
+
+async function playAtTime(target) {
+  await chrome.scripting.executeScript({
+    target: { tabId: activeTab.id },
+    world: "MAIN",
+    func: (time) => {
+      const player = window.videojs?.getPlayer?.("vdoVideo") || window.videojs?.("vdoVideo");
+      if (!player) throw new Error("Video.js player not found");
+      player.pause();
+      player.one("seeked", () => {
+        Promise.resolve(player.play()).catch(() => {});
+      });
+      player.currentTime(time);
+    },
+    args: [target]
+  });
+}
+
 function storageKey(videoKey) {
   return `bookmarks:${videoKey}`;
 }
@@ -163,6 +195,24 @@ async function init() {
   $("note").focus();
   $("note").select();
 }
+
+$("goPlay").addEventListener("click", async () => {
+  const target = parseTimecode($("goTime").value);
+  if (target === null) {
+    showError("時間格式請輸入 HH:MM:SS，例如 01:23:45。");
+    return;
+  }
+  try {
+    await playAtTime(target);
+    window.close();
+  } catch {
+    showError("無法控制 Video.js 播放器。");
+  }
+});
+
+$("goTime").addEventListener("keydown", (event) => {
+  if (event.key === "Enter") $("goPlay").click();
+});
 
 $("save").addEventListener("click", async () => {
   try {
