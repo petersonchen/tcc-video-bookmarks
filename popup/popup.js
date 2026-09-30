@@ -64,22 +64,6 @@ async function persist() {
   await chrome.storage.local.set({ [storageKey(state.videoKey)]: bookmarks });
 }
 
-function debugText(entries) {
-  return entries.map((e) => {
-    const time = new Date(e.at).toLocaleTimeString("zh-TW", { hour12: false });
-    const buffered = (e.buffered || []).map((r) => `${r[0]}-${r[1]}`).join(",");
-    const base = `${time} ${e.event} current=${e.currentTime} target=${e.target} ${e.backward ? "BACKWARD" : "FORWARD"} paused=${e.paused} seeking=${e.seeking} ready=${e.readyState} network=${e.networkState} buffer=[${buffered}]`;
-    if (e.event !== "PLAYER_INSPECTOR") return base;
-    return `${base}\ncontrols=${JSON.stringify(e.controls, null, 2)}\nscripts=${JSON.stringify(e.scripts)}\nvideoParent=${e.videoParent}`;
-
-  }).join("\n");
-}
-
-async function loadDebug() {
-  const { debugLog = [] } = await chrome.storage.local.get("debugLog");
-  $("debugLog").textContent = debugLog.length ? debugText(debugLog) : "尚無紀錄";
-}
-
 function render() {
   const list = $("bookmarks");
   list.textContent = "";
@@ -90,14 +74,31 @@ function render() {
     const row = document.createElement("div");
     row.className = "bookmark";
 
-    const time = document.createElement("span");
-    time.className = "bookmark-time";
-    time.textContent = formatTime(bookmark.time);
+    const time = document.createElement("input");
+    time.className = "bookmark-edit bookmark-time";
+    time.value = formatTime(bookmark.time);
+    time.title = "編輯 Timecode";
+    time.addEventListener("change", async () => {
+      const value = parseTimecode(time.value);
+      if (value === null) {
+        time.value = formatTime(bookmark.time);
+        return;
+      }
+      bookmark.time = value;
+      await persist();
+      bookmarks.sort((a, b) => a.time - b.time);
+      render();
+    });
 
-    const note = document.createElement("span");
-    note.className = "bookmark-note";
-    note.title = bookmark.note;
-    note.textContent = bookmark.note || "Bookmark";
+    const note = document.createElement("input");
+    note.className = "bookmark-edit bookmark-note";
+    note.value = bookmark.note || "Bookmark";
+    note.title = "編輯標題";
+    note.addEventListener("change", async () => {
+      bookmark.note = note.value.trim() || "Bookmark";
+      await persist();
+      note.value = bookmark.note;
+    });
 
     const cue = document.createElement("button");
     cue.className = "cue";
@@ -186,12 +187,12 @@ async function init() {
     return;
   }
 
+  $("version").textContent = `v${chrome.runtime.getManifest().version}`;
   $("videoTitle").textContent = state.pageTitle || "TCC Video";
   $("currentTime").textContent = state.formattedTime;
   $("note").value = `Bookmark ${state.formattedTime}`;
   $("controls").classList.remove("hidden");
   await loadBookmarks();
-  await loadDebug();
   $("note").focus();
   $("note").select();
 }
@@ -235,23 +236,6 @@ $("save").addEventListener("click", async () => {
   } catch (error) {
     showError(error.message);
   }
-});
-
-$("inspectPlayer").addEventListener("click", async () => {
-  await message({ type: "TCC_INSPECT_PLAYER" });
-  await loadDebug();
-});
-
-$("copyDebug").addEventListener("click", async () => {
-  const { debugLog = [] } = await chrome.storage.local.get("debugLog");
-  await navigator.clipboard.writeText(debugText(debugLog));
-  $("copyDebug").textContent = "Copied";
-  setTimeout(() => { $("copyDebug").textContent = "Copy Log"; }, 1000);
-});
-
-$("clearDebug").addEventListener("click", async () => {
-  await chrome.storage.local.remove("debugLog");
-  await loadDebug();
 });
 
 $("note").addEventListener("keydown", (event) => {
