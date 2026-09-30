@@ -69,7 +69,7 @@
       return;
     }
 
-    if (message?.type === "TCC_CUE") {
+    if (message?.type === "TCC_CUE" || message?.type === "TCC_PLAY") {
       const video = findVideo();
       if (!video) {
         sendResponse({ ok: false, error: "找不到 HTML5 影片播放器。" });
@@ -82,6 +82,8 @@
         return;
       }
 
+      const shouldPlay = message.type === "TCC_PLAY";
+
       const cue = () => {
         // Pause before seeking, but do not pause again immediately after
         // assigning currentTime. Some streaming players can get stuck in a
@@ -93,7 +95,10 @@
           if (replied) return;
           replied = true;
           cleanup();
-          sendResponse({ ok: true, time: target, formattedTime: formatTime(target) });
+          if (shouldPlay) {
+            video.play().catch(() => {});
+          }
+          sendResponse({ ok: true, time: target, formattedTime: formatTime(target), playing: shouldPlay });
         };
         const cleanup = () => {
           video.removeEventListener("seeked", finish);
