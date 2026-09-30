@@ -1,6 +1,7 @@
 let activeTab;
 let state;
 let bookmarks = [];
+let siteAdapter;
 
 const $ = (id) => document.getElementById(id);
 
@@ -28,28 +29,11 @@ function parseTimecode(value) {
 }
 
 async function playAtTime(target) {
-  await chrome.scripting.executeScript({
-    target: { tabId: activeTab.id },
-    world: "MAIN",
-    func: (time) => {
-      const player = window.videojs?.getPlayer?.("vdoVideo") || window.videojs?.("vdoVideo");
-      if (!player) throw new Error("Video.js player not found");
-      player.pause();
-      player.one("seeked", () => {
-        Promise.resolve(player.play()).catch(() => {});
-      });
-      player.currentTime(time);
-    },
-    args: [target]
-  });
+  return siteAdapter.play(activeTab.id, target);
 }
 
 function storageKey(videoKey) {
   return `bookmarks:${videoKey}`;
-}
-
-async function message(payload) {
-  return chrome.tabs.sendMessage(activeTab.id, payload);
 }
 
 async function loadBookmarks() {
@@ -105,19 +89,9 @@ function render() {
     cue.textContent = "CUE";
     cue.addEventListener("click", async () => {
       try {
-        await chrome.scripting.executeScript({
-          target: { tabId: activeTab.id },
-          world: "MAIN",
-          func: (target) => {
-            const player = window.videojs?.getPlayer?.("vdoVideo") || window.videojs?.("vdoVideo");
-            if (!player) throw new Error("Video.js player not found");
-            player.pause();
-            player.currentTime(target);
-          },
-          args: [bookmark.time]
-        });
+        await siteAdapter.cue(activeTab.id, bookmark.time);
       } catch (error) {
-        console.error("[TCC Bookmarks] Video.js CUE failed", error);
+        console.error("[Video Cue Bookmarks] CUE failed", error);
       }
       window.close();
     });
@@ -127,22 +101,9 @@ function render() {
     play.textContent = "PLAY";
     play.addEventListener("click", async () => {
       try {
-        await chrome.scripting.executeScript({
-          target: { tabId: activeTab.id },
-          world: "MAIN",
-          func: (target) => {
-            const player = window.videojs?.getPlayer?.("vdoVideo") || window.videojs?.("vdoVideo");
-            if (!player) throw new Error("Video.js player not found");
-            player.pause();
-            player.one("seeked", () => {
-              Promise.resolve(player.play()).catch(() => {});
-            });
-            player.currentTime(target);
-          },
-          args: [bookmark.time]
-        });
+        await siteAdapter.play(activeTab.id, bookmark.time);
       } catch (error) {
-        console.error("[TCC Bookmarks] Video.js PLAY failed", error);
+        console.error("[Video Cue Bookmarks] PLAY failed", error);
       }
       window.close();
     });
@@ -170,13 +131,14 @@ function showError(text) {
 async function init() {
   [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-  if (!activeTab?.url?.startsWith("https://live.tcc.gov.tw/")) {
-    showError("請先開啟 live.tcc.gov.tw 的影片頁面。");
+  siteAdapter = (window.VideoCueSites || []).find((adapter) => adapter.matches(activeTab?.url));
+  if (!siteAdapter) {
+    showError("目前網站尚未支援 Video Cue Bookmarks。");
     return;
   }
 
   try {
-    state = await message({ type: "TCC_GET_VIDEO_STATE" });
+    state = await siteAdapter.getState(activeTab.id);
   } catch {
     showError("無法連線到頁面。請重新整理影片頁後再試一次。");
     return;
@@ -188,7 +150,7 @@ async function init() {
   }
 
   $("version").textContent = `v${chrome.runtime.getManifest().version}`;
-  $("videoTitle").textContent = state.pageTitle || "TCC Video";
+  $("videoTitle").textContent = state.pageTitle || siteAdapter.name || "Video";
   $("currentTime").textContent = state.formattedTime;
   $("note").value = `Bookmark ${state.formattedTime}`;
   $("controls").classList.remove("hidden");
@@ -218,7 +180,7 @@ $("goTime").addEventListener("keydown", (event) => {
 $("save").addEventListener("click", async () => {
   try {
     // Read again at click time so the saved time is current, not popup-open time.
-    const latest = await message({ type: "TCC_GET_VIDEO_STATE" });
+    const latest = await siteAdapter.getState(activeTab.id);
     if (!latest?.ok) throw new Error(latest?.error || "無法取得影片時間");
 
     const note = $("note").value.trim() || `Bookmark ${latest.formattedTime}`;
