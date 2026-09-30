@@ -36,7 +36,10 @@ function debugText(entries) {
   return entries.map((e) => {
     const time = new Date(e.at).toLocaleTimeString("zh-TW", { hour12: false });
     const buffered = (e.buffered || []).map((r) => `${r[0]}-${r[1]}`).join(",");
-    return `${time} ${e.event} current=${e.currentTime} target=${e.target} ${e.backward ? "BACKWARD" : "FORWARD"} paused=${e.paused} seeking=${e.seeking} ready=${e.readyState} network=${e.networkState} buffer=[${buffered}]`;
+    const base = `${time} ${e.event} current=${e.currentTime} target=${e.target} ${e.backward ? "BACKWARD" : "FORWARD"} paused=${e.paused} seeking=${e.seeking} ready=${e.readyState} network=${e.networkState} buffer=[${buffered}]`;
+    if (e.event !== "PLAYER_INSPECTOR") return base;
+    return `${base}\ncontrols=${JSON.stringify(e.controls, null, 2)}\nscripts=${JSON.stringify(e.scripts)}\nvideoParent=${e.videoParent}`;
+
   }).join("\n");
 }
 
@@ -151,6 +154,11 @@ $("save").addEventListener("click", async () => {
   } catch (error) {
     showError(error.message);
   }
+});
+
+$("inspectPlayer").addEventListener("click", async () => {
+  await message({ type: "TCC_INSPECT_PLAYER" });
+  await loadDebug();
 });
 
 $("copyDebug").addEventListener("click", async () => {
