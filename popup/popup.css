@@ -59,7 +59,7 @@ button {
 }
 .bookmark {
   display: grid;
-  grid-template-columns: 74px 1fr auto auto;
+  grid-template-columns: 74px 1fr auto auto auto;
   gap: 7px;
   align-items: center;
   padding: 9px;
@@ -70,5 +70,6 @@ button {
 .bookmark-time { font-variant-numeric: tabular-nums; font-weight: 700; }
 .bookmark-note { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .cue { background: #e2e8f0; color: #0f172a; }
+.play { background: #0f172a; color: white; }
 .delete { background: transparent; color: #94a3b8; font-size: 16px; padding: 4px 6px; }
 .empty { text-align: center; font-size: 13px; }
