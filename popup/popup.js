@@ -64,6 +64,19 @@ function render() {
       }
     });
 
+    const play = document.createElement("button");
+    play.className = "play";
+    play.textContent = "PLAY";
+    play.addEventListener("click", async () => {
+      try {
+        const response = await message({ type: "TCC_PLAY", time: bookmark.time });
+        if (!response?.ok) throw new Error(response?.error || "PLAY 失敗");
+        window.close();
+      } catch (error) {
+        showError(error.message);
+      }
+    });
+
     const remove = document.createElement("button");
     remove.className = "delete";
     remove.title = "刪除";
@@ -74,7 +87,7 @@ function render() {
       render();
     });
 
-    row.append(time, note, cue, remove);
+    row.append(time, note, cue, play, remove);
     list.append(row);
   });
 }
