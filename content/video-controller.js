@@ -85,6 +85,32 @@
       const shouldPlay = message.type === "TCC_PLAY";
       const isBackwardSeek = target < video.currentTime - 1;
 
+      const debug = (event) => {
+        const ranges = [];
+        for (let i = 0; i < video.buffered.length; i += 1) {
+          ranges.push([
+            Number(video.buffered.start(i).toFixed(2)),
+            Number(video.buffered.end(i).toFixed(2))
+          ]);
+        }
+        console.log("[TCC Bookmarks]", event, {
+          currentTime: Number(video.currentTime.toFixed(2)),
+          target,
+          backward: isBackwardSeek,
+          paused: video.paused,
+          seeking: video.seeking,
+          readyState: video.readyState,
+          networkState: video.networkState,
+          buffered: ranges
+        });
+      };
+
+      ["seeking", "seeked", "waiting", "stalled", "canplay", "playing", "pause", "error"]
+        .forEach((eventName) => {
+          video.addEventListener(eventName, () => debug(eventName), { once: true });
+        });
+      debug("command");
+
       const cue = () => {
         video.pause();
 
