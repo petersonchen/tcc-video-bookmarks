@@ -90,3 +90,16 @@ button {
 }
 .debug-actions { display: flex; gap: 7px; }
 .debug-actions button { background: #e2e8f0; color: #0f172a; }
+
+.goto-row {
+  display: grid;
+  grid-template-columns: 1fr 72px;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+.goto-row input {
+  font-variant-numeric: tabular-nums;
+}
+.goto-row .play {
+  padding: 10px;
+}
