@@ -93,7 +93,9 @@
             Number(video.buffered.end(i).toFixed(2))
           ]);
         }
-        console.log("[TCC Bookmarks]", event, {
+        const entry = {
+          at: new Date().toISOString(),
+          event,
           currentTime: Number(video.currentTime.toFixed(2)),
           target,
           backward: isBackwardSeek,
@@ -102,7 +104,12 @@
           readyState: video.readyState,
           networkState: video.networkState,
           buffered: ranges
-        });
+        };
+        console.log("[TCC Bookmarks]", event, entry);
+        chrome.storage.local.get("debugLog").then(({ debugLog = [] }) => {
+          const next = [...debugLog, entry].slice(-50);
+          return chrome.storage.local.set({ debugLog: next });
+        }).catch(() => {});
       };
 
       ["seeking", "seeked", "waiting", "stalled", "canplay", "playing", "pause", "error"]
