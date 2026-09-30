@@ -192,15 +192,11 @@
           recoveryUsed = true;
           debug("backward-recovery");
 
-          // If fastSeek is available, ask the browser media pipeline to perform
-          // another keyframe-aware seek instead of assigning currentTime again.
-          if (typeof video.fastSeek === "function") {
-            video.fastSeek(target);
-          } else {
-            video.currentTime = target;
-          }
-
+          // Retry with a tiny nearby seek only after the stepped scrub has
+          // completed; diagnostics will show whether the new buffer exists.
+          video.currentTime = Math.max(0, target - 0.5);
           setTimeout(() => {
+            video.currentTime = target;
             video.play().catch(() => {});
           }, 250);
         };
@@ -231,9 +227,29 @@
 
         video.addEventListener("seeked", onSeeked, { once: true });
 
-        if (isBackwardSeek && typeof video.fastSeek === "function") {
-          debug("fastSeek");
-          video.fastSeek(target);
+        if (isBackwardSeek) {
+          const from = video.currentTime;
+          const distance = from - target;
+          const steps = Math.max(8, Math.min(40, Math.ceil(distance / 150)));
+          let step = 1;
+          debug("backward-scrub-start");
+
+          const scrub = () => {
+            if (step > steps) {
+              debug("backward-scrub-final");
+              video.currentTime = target;
+              return;
+            }
+
+            // Ease through intermediate positions, similar to dragging the
+            // site's timeline rather than making one very large seek.
+            const progress = step / steps;
+            video.currentTime = from - distance * progress;
+            step += 1;
+            setTimeout(scrub, 35);
+          };
+
+          scrub();
         } else {
           video.currentTime = target;
         }
