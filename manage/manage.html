@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MPY Timecode Marker 管理</title>
+  <link rel="stylesheet" href="manage.css">
+</head>
+<body>
+  <main>
+    <header>
+      <div class="title-row"><h1>MPY Timecode Marker 管理</h1><span id="version" class="version"></span></div>
+    </header>
+
+    <section class="card">
+      <h2>影片</h2>
+      <div id="videos"></div>
+      <div id="videosEmpty" class="empty hidden">尚未建立 Marker</div>
+    </section>
+
+    <section class="card">
+      <h2>匯出</h2>
+      <p class="muted">依 Marker 的最後修改日篩選，產生純文字。</p>
+      <div class="date-row">
+        <label>從 <input id="exportFrom" type="date"></label>
+        <label>到 <input id="exportTo" type="date"></label>
+        <button id="exportBuild" class="primary">產生</button>
+      </div>
+      <div id="exportResult" class="hidden">
+        <div id="exportSummary" class="summary"></div>
+        <textarea id="exportText" readonly rows="12"></textarea>
+        <button id="exportCopy" class="primary">複製</button>
+        <span id="exportCopied" class="muted hidden">已複製</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>匯入</h2>
+      <p class="muted">貼上匯出的文字。同一支影片會與現有 Marker 合併，時間與標題都相同的 Marker 會略過。</p>
+      <textarea id="importText" rows="12" placeholder="MPY Timecode Marker v1&#10;…"></textarea>
+      <button id="importPreview" class="primary">預覽</button>
+      <div id="importResult" class="hidden">
+        <div id="importSummary" class="summary"></div>
+        <button id="importApply" class="primary">匯入</button>
+      </div>
+    </section>
+  </main>
+  <script src="../lib/markers.js"></script>
+  <script src="../lib/video-key.js"></script>
+  <script src="manage.js"></script>
+</body>
+</html>

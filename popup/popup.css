@@ -11,6 +11,8 @@ main { padding: 16px; }
 header { margin-bottom: 14px; }
 .title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .version { color: #94a3b8; font-size: 11px; font-variant-numeric: tabular-nums; }
+.title-meta { display: flex; align-items: baseline; gap: 8px; }
+.link { padding: 0; background: none; color: #2563eb; font-size: 12px; font-weight: 600; }
 h1 { margin: 0 0 5px; font-size: 18px; }
 .muted { color: #64748b; font-size: 12px; }
 .hidden { display: none !important; }

@@ -23,39 +23,23 @@
     return url.href;
   }
 
-  function youtubeVideoId() {
-    const url = new URL(location.href);
-    if (url.pathname === "/watch") return url.searchParams.get("v");
-    return url.pathname.match(/^\/live\/([\w-]{11})/)?.[1] || null;
-  }
-
   function tccIdentity(video) {
     // Do NOT use currentSrc as the primary key. Streaming URLs can contain
     // temporary tokens and change after every page reload.
     const pageUrl = stablePageUrl();
-
-    // Prefer stable identifiers exposed by the page/player when present.
-    const stableId =
-      video?.dataset?.videoId ||
-      video?.dataset?.id ||
-      document.querySelector("[data-video-id]")?.dataset?.videoId ||
-      new URL(pageUrl).searchParams.get("vdvno") ||
-      new URL(pageUrl).searchParams.get("id") ||
-      new URL(pageUrl).searchParams.get("videoId") ||
-      new URL(pageUrl).searchParams.get("VideoId") ||
-      "";
-
     return {
-      videoKey: stableId ? `tcc:${stableId}` : `page:${pageUrl}`,
+      videoKey: videoKeyFromUrl(pageUrl),
       pageUrl,
       mediaUrl: video?.currentSrc || video?.src || video?.querySelector("source")?.src || "",
-      pageTitle: document.title.trim()
+      // document.title is the same site name on every TCC video page, so use
+      // the meeting name shown above the player.
+      pageTitle: document.getElementById("aTitle")?.textContent.replace(/\s+/g, " ").trim() || document.title.trim()
     };
   }
 
   function youtubeIdentity(videoId) {
     return {
-      videoKey: `youtube:${videoId}`,
+      videoKey: videoKeyFromUrl(location.href),
       pageUrl: `https://www.youtube.com/watch?v=${videoId}`,
       mediaUrl: "",
       // Strip the unread-notification count and the " - YouTube" suffix.
@@ -73,7 +57,7 @@
 
   function videoState() {
     if (site === "youtube") {
-      const videoId = youtubeVideoId();
+      const videoId = youtubeVideoId(new URL(location.href));
       if (!videoId) return { ok: false, error: "請開啟 YouTube 影片頁面（watch 或 live）。" };
       // During an ad the <video> element plays the ad, so its time is not the video's time.
       if (document.getElementById("movie_player")?.classList.contains("ad-showing")) {
@@ -87,7 +71,7 @@
     return {
       ok: true,
       site,
-      ...(site === "youtube" ? youtubeIdentity(youtubeVideoId()) : tccIdentity(video)),
+      ...(site === "youtube" ? youtubeIdentity(youtubeVideoId(new URL(location.href))) : tccIdentity(video)),
       currentTime: video.currentTime || 0,
       formattedTime: formatTime(video.currentTime)
     };

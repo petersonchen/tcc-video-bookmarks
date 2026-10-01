@@ -5,39 +5,12 @@ let siteAdapter;
 
 const $ = (id) => document.getElementById(id);
 
-function formatTime(totalSeconds) {
-  const seconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  return [h, m, s].map((n) => String(n).padStart(2, "0")).join(":");
-}
-
-function parseTimecode(value) {
-  const parts = value.trim().split(":").map((part) => Number(part));
-  if (parts.some((part) => !Number.isFinite(part) || part < 0)) return null;
-
-  let seconds;
-  if (parts.length === 3) seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
-  else if (parts.length === 2) seconds = parts[0] * 60 + parts[1];
-  else if (parts.length === 1) seconds = parts[0];
-  else return null;
-
-  if (parts.length >= 2 && parts[parts.length - 1] >= 60) return null;
-  if (parts.length === 3 && parts[1] >= 60) return null;
-  return seconds;
-}
-
 async function playAtTime(target) {
   return siteAdapter.play(activeTab.id, target);
 }
 
-function storageKey(videoKey) {
-  return `markers:${videoKey}`;
-}
-
 async function loadMarkers() {
-  const key = storageKey(state.videoKey);
+  const key = markersKey(state.videoKey);
   const result = await chrome.storage.local.get(key);
   markers = Array.isArray(result[key]) ? result[key] : [];
   markers.sort((a, b) => a.time - b.time);
@@ -45,7 +18,14 @@ async function loadMarkers() {
 }
 
 async function persist() {
-  await chrome.storage.local.set({ [storageKey(state.videoKey)]: markers });
+  await chrome.storage.local.set({ [markersKey(state.videoKey)]: markers });
+}
+
+// Keep the title and URL so the manage page can list and export this video.
+async function saveVideoMeta() {
+  await chrome.storage.local.set({
+    [videoMetaKey(state.videoKey)]: { site: state.site, title: state.pageTitle, pageUrl: state.pageUrl }
+  });
 }
 
 function render() {
@@ -69,6 +49,7 @@ function render() {
         return;
       }
       marker.time = value;
+      marker.updatedAt = new Date().toISOString();
       await persist();
       markers.sort((a, b) => a.time - b.time);
       render();
@@ -80,6 +61,7 @@ function render() {
     note.title = "編輯標題";
     note.addEventListener("change", async () => {
       marker.note = note.value.trim() || "Marker";
+      marker.updatedAt = new Date().toISOString();
       await persist();
       note.value = marker.note;
     });
@@ -129,6 +111,7 @@ function showError(text) {
 }
 
 async function init() {
+  $("version").textContent = `v${chrome.runtime.getManifest().version}`;
   [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
   siteAdapter = (window.SiteAdapters || []).find((adapter) => adapter.matches(activeTab?.url));
@@ -149,11 +132,11 @@ async function init() {
     return;
   }
 
-  $("version").textContent = `v${chrome.runtime.getManifest().version}`;
   $("videoTitle").textContent = state.pageTitle || siteAdapter.name || "Video";
   $("currentTime").textContent = state.formattedTime;
   $("note").value = `Marker ${state.formattedTime}`;
   $("controls").classList.remove("hidden");
+  await saveVideoMeta();
   await loadMarkers();
   $("note").focus();
   $("note").select();
@@ -173,6 +156,11 @@ $("goPlay").addEventListener("click", async () => {
   }
 });
 
+$("manage").addEventListener("click", async () => {
+  await chrome.tabs.create({ url: chrome.runtime.getURL("manage/manage.html") });
+  window.close();
+});
+
 $("goTime").addEventListener("keydown", (event) => {
   if (event.key === "Enter") $("goPlay").click();
 });
@@ -184,14 +172,10 @@ $("save").addEventListener("click", async () => {
     if (!latest?.ok) throw new Error(latest?.error || "無法取得影片時間");
 
     const note = $("note").value.trim() || `Marker ${latest.formattedTime}`;
-    markers.push({
-      id: crypto.randomUUID(),
-      time: latest.currentTime,
-      note,
-      createdAt: new Date().toISOString()
-    });
+    markers.push(newMarker(latest.currentTime, note));
     state = latest;
     await persist();
+    await saveVideoMeta();
     $("currentTime").textContent = latest.formattedTime;
     $("note").value = "";
     await loadMarkers();
