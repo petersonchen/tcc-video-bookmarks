@@ -5,7 +5,7 @@ body {
   color: #1f2937;
   background: #f8fafc;
 }
-main { max-width: 760px; margin: 0 auto; padding: 24px 16px; }
+main { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
 header { margin-bottom: 16px; }
 .title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .version { color: #94a3b8; font-size: 12px; font-variant-numeric: tabular-nums; }
@@ -31,7 +31,14 @@ details[open] > summary { margin-bottom: 8px; }
 .setting { display: block; margin-bottom: 6px; font-size: 14px; }
 .setting input { width: 72px; margin: 0 4px; text-align: right; }
 
-#search { display: block; width: 100%; margin-bottom: 12px; }
+.list-tools { display: flex; gap: 8px; margin-bottom: 12px; }
+#search { flex: 1; min-width: 0; }
+.modes-label { flex: none; align-self: center; margin-left: 8px; color: #475569; font-size: 13px; font-weight: 600; }
+.modes { display: flex; flex: none; }
+.modes button { padding: 8px 12px; border-radius: 0; background: #e2e8f0; color: #475569; }
+.modes button:first-child { border-radius: 7px 0 0 7px; }
+.modes button:last-child { border-radius: 0 7px 7px 0; }
+.modes button.active { background: #0f172a; color: white; }
 .date-group { margin-top: 16px; }
 .date-group:first-child { margin-top: 0; }
 .date {
@@ -42,8 +49,22 @@ details[open] > summary { margin-bottom: 8px; }
   font-variant-numeric: tabular-nums;
 }
 .video { margin: 0 0 10px 12px; }
+.video-heading { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+/* Fixed width so titles line up whatever the site label. */
+.site-badge {
+  flex: none;
+  width: 60px;
+  padding: 1px 0;
+  text-align: center;
+  border-radius: 4px;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+}
+.site-tcc { background: #1e3a8a; }
+.site-youtube { background: #dc2626; }
 .video-title {
-  margin-bottom: 4px;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -54,7 +75,7 @@ details[open] > summary { margin-bottom: 8px; }
 .video-title a:hover { text-decoration: underline; }
 .marker {
   display: grid;
-  grid-template-columns: 90px minmax(0, 1fr) auto auto auto;
+  grid-template-columns: 90px minmax(0, 1fr) auto;
   gap: 6px;
   align-items: center;
   margin: 0 0 4px 16px;
@@ -62,9 +83,20 @@ details[open] > summary { margin-bottom: 8px; }
 .marker-edit { min-width: 0; padding: 5px 7px; border-color: transparent; background: #f8fafc; font-size: 13px; }
 .marker-edit:focus { border-color: #94a3b8; background: #fff; outline: none; }
 .marker-time { font-variant-numeric: tabular-nums; font-weight: 700; }
-.cue, .play { padding: 5px 9px; font-size: 12px; }
-.cue { background: #e2e8f0; color: #0f172a; }
-.play { background: #0f172a; color: white; }
+/* In CUE / PLAY mode the whole row is one button. */
+.marker-action {
+  grid-template-columns: 90px minmax(0, 1fr);
+  width: calc(100% - 16px);
+  padding: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font-weight: normal;
+  text-align: left;
+}
+.marker-action span { padding: 5px 7px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.marker-action:hover { background: #e0e7ff; }
+.marker-action:active { background: #c7d2fe; }
 .delete { padding: 4px 8px; background: transparent; color: #94a3b8; font-size: 16px; }
 .delete:hover { color: #b91c1c; }
 .toast {

@@ -14,7 +14,15 @@
 
     <details class="card" open>
       <summary><h2>Marker</h2></summary>
-      <input id="search" type="search" placeholder="搜尋日期、影片標題、Marker 標題" autocomplete="off">
+      <div class="list-tools">
+        <input id="search" type="search" placeholder="搜尋日期、網站、影片標題、Marker 標題" autocomplete="off">
+        <span class="modes-label" id="modesLabel">點選 Marker：</span>
+        <div id="modes" class="modes" role="group" aria-labelledby="modesLabel">
+          <button data-mode="cue" title="點選 Marker：跳至該時間並暫停">CUE</button>
+          <button data-mode="play" title="點選 Marker：跳至該時間並播放">PLAY</button>
+          <button data-mode="edit" title="編輯或刪除 Marker">EDIT</button>
+        </div>
+      </div>
       <div id="list"></div>
       <div id="listEmpty" class="empty hidden"></div>
       <div id="listHint" class="hint hidden"></div>

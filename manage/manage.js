@@ -15,6 +15,13 @@ function element(tag, className, text) {
   return node;
 }
 
+const SITE_LABELS = { tcc: "TCC", youtube: "YouTube" };
+
+// Videos saved before video meta existed have no site; the key prefix tells.
+function videoSite(videoKey, meta) {
+  return meta.site || (videoKey.startsWith("youtube:") ? "youtube" : "tcc");
+}
+
 // Videos with their live markers. A video's date is the latest update among
 // those markers, and the list groups videos by that date.
 async function loadVideos() {
@@ -27,6 +34,7 @@ async function loadVideos() {
       const markers = all[key].filter(isLive).sort((a, b) => a.time - b.time);
       return {
         videoKey,
+        site: videoSite(videoKey, meta),
         title: meta.title || videoKey,
         pageUrl: meta.pageUrl || "",
         markers,
@@ -81,25 +89,46 @@ function recentCutoff() {
 
 // ---- Marker list ----
 
+// What clicking a marker does: "cue", "play", or "edit". Stored apart from the
+// settings section since it changes often.
+let markerMode = "play";
+
+async function loadMarkerMode() {
+  markerMode = (await chrome.storage.local.get("markerMode")).markerMode || "play";
+  document.querySelectorAll("#modes button").forEach((button) => {
+    button.classList.toggle("active", button.dataset.mode === markerMode);
+  });
+}
+
+document.querySelectorAll("#modes button").forEach((button) => {
+  button.addEventListener("click", () => chrome.storage.local.set({ markerMode: button.dataset.mode }));
+});
+
 let videos = [];
 let pendingRefresh = false;
 let toastTimer;
 
-// fzf-like: every space-separated term must appear in order, not necessarily
-// adjacent. Terms made only of digits and date or time separators must appear
-// as typed; in order they would match almost any date or timecode.
-function fuzzyMatch(text, query) {
-  const haystack = text.toLowerCase();
-  return query.toLowerCase().split(/\s+/).filter(Boolean).every((term) => {
-    if (/^[\d/:-]+$/.test(term)) return haystack.includes(term);
-    let position = 0;
-    for (const char of term) {
-      position = haystack.indexOf(char, position);
-      if (position === -1) return false;
-      position += char.length;
-    }
-    return true;
-  });
+// fzf-like: the term's characters appear in order, not necessarily adjacent.
+// Terms made only of digits and date or time separators must appear as typed;
+// in order they would match almost any date or timecode.
+function termMatches(haystack, term) {
+  if (/^[\d/:-]+$/.test(term)) return haystack.includes(term);
+  let position = 0;
+  for (const char of term) {
+    position = haystack.indexOf(char, position);
+    if (position === -1) return false;
+    position += char.length;
+  }
+  return true;
+}
+
+// The site a term names: the start of a site label ("you", "tc"), at least two
+// characters, or the alias "yt". Site labels are kept out of the fuzzy text, or
+// "tcc" would match any text with t, c, c in order.
+function siteForTerm(term) {
+  if (term === "yt") return "youtube";
+  if (term.length < 2) return null;
+  return Object.keys(SITE_LABELS).find((site) => SITE_LABELS[site].toLowerCase().startsWith(term)) || null;
 }
 
 function displayDate(date) {
@@ -112,9 +141,9 @@ async function refreshList() {
 }
 
 function renderList() {
-  const query = $("search").value.trim();
+  const terms = $("search").value.trim().toLowerCase().split(/\s+/).filter(Boolean);
   // Without a search, only recent videos are shown; a search covers every video.
-  const cutoff = query ? "" : recentCutoff();
+  const cutoff = terms.length ? "" : recentCutoff();
   let hiddenVideos = 0;
   const groups = new Map();
   videos.forEach((video) => {
@@ -123,9 +152,11 @@ function renderList() {
       hiddenVideos += 1;
       return;
     }
-    const markers = video.markers.filter((marker) =>
-      fuzzyMatch(`${displayDate(date)} ${date} ${video.title} ${formatTime(marker.time)} ${marker.note || ""}`, query)
-    );
+    // Every term must match, either by naming the video's site or by the text.
+    const markers = video.markers.filter((marker) => {
+      const text = `${displayDate(date)} ${date} ${video.title} ${formatTime(marker.time)} ${marker.note || ""}`.toLowerCase();
+      return terms.every((term) => siteForTerm(term) === video.site || termMatches(text, term));
+    });
     if (!markers.length) return;
     if (!groups.has(date)) groups.set(date, []);
     groups.get(date).push({ ...video, markers });
@@ -150,22 +181,35 @@ function renderList() {
 
 function renderVideo(video) {
   const block = element("div", "video");
-  const heading = element("div", "video-title");
+  const heading = element("div", "video-heading");
+  const title = element("div", "video-title");
   if (video.pageUrl) {
     const link = element("a", "", video.title);
     link.href = video.pageUrl;
     link.target = "_blank";
-    heading.append(link);
+    title.append(link);
   } else {
-    heading.textContent = video.title;
+    title.textContent = video.title;
   }
-  heading.title = video.title;
+  title.title = video.title;
+  heading.append(element("span", `site-badge site-${video.site}`, SITE_LABELS[video.site]), title);
   block.append(heading);
   video.markers.forEach((marker) => block.append(renderMarker(video, marker)));
   return block;
 }
 
 function renderMarker(video, marker) {
+  if (markerMode === "edit") return renderEditableMarker(video, marker);
+
+  const play = markerMode === "play";
+  const row = element("button", "marker marker-action");
+  row.title = play ? "跳至此時間並播放" : "跳至此時間並暫停";
+  row.append(element("span", "marker-time", formatTime(marker.time)), element("span", "", marker.note || "Marker"));
+  row.addEventListener("click", () => seekMarker(video, marker, play));
+  return row;
+}
+
+function renderEditableMarker(video, marker) {
   const row = element("div", "marker");
 
   const time = element("input", "marker-edit marker-time");
@@ -196,14 +240,6 @@ function renderMarker(video, marker) {
     });
   });
 
-  const cue = element("button", "cue", "CUE");
-  cue.title = "跳至此時間並暫停";
-  cue.addEventListener("click", () => seekMarker(video, marker, false));
-
-  const play = element("button", "play", "PLAY");
-  play.title = "跳至此時間並播放";
-  play.addEventListener("click", () => seekMarker(video, marker, true));
-
   const remove = element("button", "delete", "×");
   remove.title = "刪除";
   remove.addEventListener("click", async () => {
@@ -211,7 +247,7 @@ function renderMarker(video, marker) {
     showUndo(video.videoKey, marker);
   });
 
-  row.append(time, note, cue, play, remove);
+  row.append(time, note, remove);
   return row;
 }
 
@@ -294,17 +330,19 @@ async function seekMarker(video, marker, play) {
 
 $("search").addEventListener("input", renderList);
 
-// Re-rendering would drop an edit in progress, so wait until focus leaves the list.
+// Re-rendering would drop an edit in progress, so wait until focus leaves the
+// list's inputs.
 chrome.storage.onChanged.addListener(async (changes, area) => {
   if (area !== "local") return;
   if (changes.settings) await loadSettings();
-  if (document.activeElement?.closest("#list")) pendingRefresh = true;
+  if (changes.markerMode) await loadMarkerMode();
+  if (document.activeElement?.matches("#list input")) pendingRefresh = true;
   else refreshList();
 });
 
 $("list").addEventListener("focusout", () => {
   setTimeout(() => {
-    if (!pendingRefresh || document.activeElement?.closest("#list")) return;
+    if (!pendingRefresh || document.activeElement?.matches("#list input")) return;
     pendingRefresh = false;
     refreshList();
   });
@@ -497,4 +535,4 @@ $("version").textContent = `v${chrome.runtime.getManifest().version}`;
 const today = localDate(Date.now());
 $("exportFrom").value = today;
 $("exportTo").value = today;
-loadSettings().then(refreshList);
+Promise.all([loadSettings(), loadMarkerMode()]).then(refreshList);
