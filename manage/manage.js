@@ -105,6 +105,9 @@ document.querySelectorAll("#modes button").forEach((button) => {
 });
 
 let videos = [];
+// Manual video order per date, from order:<date> keys: { "2026-09-30": [videoKey, ...] }.
+let orders = {};
+let dragging = null;
 let pendingRefresh = false;
 let toastTimer;
 
@@ -137,7 +140,23 @@ function displayDate(date) {
 
 async function refreshList() {
   videos = await loadVideos();
+  const all = await chrome.storage.local.get(null);
+  orders = Object.fromEntries(
+    Object.keys(all).filter((key) => key.startsWith("order:")).map((key) => [key.slice("order:".length), all[key]])
+  );
   renderList();
+}
+
+// Videos of a date in the order the user dragged them into. Videos missing from
+// that order, such as ones that reached this date later, follow in title order.
+function sortByOrder(date, list) {
+  const order = orders[date];
+  if (!order) return list;
+  const rank = (video) => {
+    const index = order.indexOf(video.videoKey);
+    return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+  };
+  return [...list].sort((a, b) => rank(a) - rank(b));
 }
 
 function renderList() {
@@ -162,12 +181,14 @@ function renderList() {
     groups.get(date).push({ ...video, markers });
   });
 
+  // A filtered list hides some videos of a date, so reordering waits for no search.
+  const canDrag = markerMode === "edit" && terms.length === 0;
   const list = $("list");
   list.textContent = "";
   [...groups.keys()].sort().reverse().forEach((date) => {
     const group = element("section", "date-group");
     group.append(element("h3", "date", displayDate(date)));
-    groups.get(date).forEach((video) => group.append(renderVideo(video)));
+    sortByOrder(date, groups.get(date)).forEach((video) => group.append(renderVideo(video, date, canDrag)));
     list.append(group);
   });
 
@@ -179,8 +200,9 @@ function renderList() {
   $("listHint").classList.toggle("hidden", hiddenVideos === 0);
 }
 
-function renderVideo(video) {
+function renderVideo(video, date, canDrag) {
   const block = element("div", "video");
+  block.dataset.videoKey = video.videoKey;
   const heading = element("div", "video-heading");
   const title = element("div", "video-title");
   if (video.pageUrl) {
@@ -193,9 +215,55 @@ function renderVideo(video) {
   }
   title.title = video.title;
   heading.append(element("span", `site-badge site-${video.site}`, SITE_LABELS[video.site]), title);
+  if (canDrag) {
+    const handle = element("span", "drag-handle", "⋮⋮");
+    handle.title = "拖拉調整同一天的影片順序";
+    heading.prepend(handle);
+    enableDrag(block, handle, date);
+  }
   block.append(heading);
   video.markers.forEach((marker) => block.append(renderMarker(video, marker)));
   return block;
+}
+
+function clearDropMarks() {
+  document.querySelectorAll(".drop-before, .drop-after").forEach((node) => node.classList.remove("drop-before", "drop-after"));
+}
+
+// Dragging by the handle reorders videos within one date and saves the order.
+function enableDrag(block, handle, date) {
+  const videoKey = block.dataset.videoKey;
+  handle.draggable = true;
+  handle.addEventListener("dragstart", (event) => {
+    dragging = { date, videoKey };
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setDragImage(block, 0, 0);
+    block.classList.add("dragging");
+  });
+  handle.addEventListener("dragend", () => {
+    dragging = null;
+    block.classList.remove("dragging");
+    clearDropMarks();
+  });
+  block.addEventListener("dragover", (event) => {
+    if (!dragging || dragging.date !== date || dragging.videoKey === videoKey) return;
+    event.preventDefault();
+    const rect = block.getBoundingClientRect();
+    clearDropMarks();
+    block.classList.add(event.clientY > rect.top + rect.height / 2 ? "drop-after" : "drop-before");
+  });
+  block.addEventListener("drop", async (event) => {
+    if (!dragging || dragging.date !== date || dragging.videoKey === videoKey) return;
+    event.preventDefault();
+    const after = block.classList.contains("drop-after");
+    const moved = dragging.videoKey;
+    const keys = [...block.parentElement.querySelectorAll(".video")]
+      .map((node) => node.dataset.videoKey)
+      .filter((key) => key !== moved);
+    keys.splice(keys.indexOf(videoKey) + (after ? 1 : 0), 0, moved);
+    clearDropMarks();
+    await chrome.storage.local.set({ [`order:${date}`]: keys });
+  });
 }
 
 function renderMarker(video, marker) {

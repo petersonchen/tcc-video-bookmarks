@@ -61,6 +61,11 @@ details[open] > summary { margin-bottom: 8px; }
   font-size: 11px;
   font-weight: 700;
 }
+.drag-handle { flex: none; padding: 0 4px; color: #64748b; font-size: 16px; font-weight: 700; line-height: 1; cursor: grab; user-select: none; letter-spacing: -3px; }
+.drag-handle:hover { color: #0f172a; }
+.video.dragging { opacity: 0.4; }
+.video.drop-before { box-shadow: 0 -2px 0 #2563eb; }
+.video.drop-after { box-shadow: 0 2px 0 #2563eb; }
 .site-tcc { background: #1e3a8a; }
 .site-youtube { background: #dc2626; }
 .video-title {
