@@ -2,7 +2,7 @@
 
 **MPY Timecode Marker** 是一套 Chrome / Microsoft Edge 瀏覽器擴充功能，讓影音操作人員可以在支援的網站影片中建立 Timecode Marker，並快速定位、預備及播放指定片段。
 
-本專案採「單一 Extension、多網站支援」的方向設計。網站專屬的播放器控制封裝為 Site Adapter；目前第一個 Adapter 為 `sites/tcc.js`，支援臺北市議會雲端議事影音。
+本專案採「單一 Extension、多網站支援」的方向設計。網站專屬的播放器控制封裝為 Site Adapter；目前有 `sites/tcc.js`（臺北市議會雲端議事影音）與 `sites/youtube.js`（YouTube）。
 
 ## 功能
 
@@ -33,6 +33,15 @@
 - 網域：`https://live.tcc.gov.tw/`
 - 播放器：Video.js / VHS
 - 支援 Marker、CUE、PLAY 與直接輸入 Timecode 播放
+- Marker 依網址的 `vdvno` 參數區分影片
+
+### YouTube
+
+- 網域：`https://www.youtube.com/`
+- 支援頁面：`watch` 與 `live` 影片頁；不支援 Shorts 與嵌入其他網站的播放器
+- 播放器：YouTube player API（`#movie_player`）
+- Marker 依 video ID 區分影片
+- 廣告播放期間無法儲存 Marker
 
 未來新增網站時，只需增加對應的 Site Adapter 與該網站必要的權限，不需要修改共用 Marker UI，也不會預先要求存取所有網站。
 
@@ -40,7 +49,8 @@
 
 - `popup/popup.js`：共用 Marker UI、儲存與操作流程
 - `sites/tcc.js`：臺北市議會網站判斷，以及 Video.js 的 CUE / PLAY 控制
-- `content/video-controller.js`：目前負責從 TCC 頁面取得影片狀態與穩定的影片識別資訊
+- `sites/youtube.js`：YouTube 網站判斷，以及 YouTube player API 的 CUE / PLAY 控制
+- `content/video-controller.js`：從 TCC 與 YouTube 頁面取得影片狀態與穩定的影片識別資訊
 
 新增其他網站時，可依 `sites/tcc.js` 的介面實作 `matches()`、`getState()`、`cue()` 與 `play()`。
 

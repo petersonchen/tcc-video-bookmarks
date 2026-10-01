@@ -9,7 +9,7 @@ window.SiteAdapters.push({
   },
 
   async getState(tabId) {
-    return chrome.tabs.sendMessage(tabId, { type: "TCC_GET_VIDEO_STATE" });
+    return chrome.tabs.sendMessage(tabId, { type: "GET_VIDEO_STATE" });
   },
 
   async cue(tabId, target) {
