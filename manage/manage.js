@@ -83,7 +83,7 @@ function recentCutoff() {
 
 let videos = [];
 let pendingRefresh = false;
-let undoTimer;
+let toastTimer;
 
 // fzf-like: every space-separated term must appear in order, not necessarily
 // adjacent. Terms made only of digits and date or time separators must appear
@@ -196,6 +196,14 @@ function renderMarker(video, marker) {
     });
   });
 
+  const cue = element("button", "cue", "CUE");
+  cue.title = "跳至此時間並暫停";
+  cue.addEventListener("click", () => seekMarker(video, marker, false));
+
+  const play = element("button", "play", "PLAY");
+  play.title = "跳至此時間並播放";
+  play.addEventListener("click", () => seekMarker(video, marker, true));
+
   const remove = element("button", "delete", "×");
   remove.title = "刪除";
   remove.addEventListener("click", async () => {
@@ -203,25 +211,85 @@ function renderMarker(video, marker) {
     showUndo(video.videoKey, marker);
   });
 
-  row.append(time, note, remove);
+  row.append(time, note, cue, play, remove);
   return row;
 }
 
-function hideUndo() {
-  clearTimeout(undoTimer);
-  $("undo").classList.add("hidden");
+function hideToast() {
+  clearTimeout(toastTimer);
+  $("toast").classList.add("hidden");
+}
+
+function showToast(text, actionLabel, onAction) {
+  $("toastText").textContent = text;
+  $("toastAction").textContent = actionLabel || "";
+  $("toastAction").classList.toggle("hidden", !actionLabel);
+  $("toastAction").onclick = async () => {
+    hideToast();
+    await onAction();
+  };
+  $("toast").classList.remove("hidden");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 8000);
 }
 
 // Only the latest deletion can be undone.
 function showUndo(videoKey, marker) {
-  $("undoText").textContent = `已刪除「${marker.note || "Marker"}」`;
-  $("undoButton").onclick = async () => {
-    hideUndo();
-    await changeMarker(videoKey, marker.id, { deletedAt: undefined });
-  };
-  $("undo").classList.remove("hidden");
-  clearTimeout(undoTimer);
-  undoTimer = setTimeout(hideUndo, 8000);
+  showToast(`已刪除「${marker.note || "Marker"}」`, "復原", () =>
+    changeMarker(videoKey, marker.id, { deletedAt: undefined })
+  );
+}
+
+// ---- CUE / PLAY ----
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function adapterFor(url) {
+  return (window.SiteAdapters || []).find((adapter) => adapter.matches(url));
+}
+
+// The most recently used tab showing this video, if any.
+async function findVideoTab(videoKey) {
+  const tabs = await chrome.tabs.query({ url: ["https://live.tcc.gov.tw/*", "https://www.youtube.com/*"] });
+  return tabs
+    .filter((tab) => videoKeyFromUrl(tab.url) === videoKey)
+    .sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))[0];
+}
+
+// A new tab starts loading before its player exists, so poll until it can seek.
+// The timeout leaves room for a YouTube ad to finish first.
+async function waitForPlayer(adapter, tabId, timeoutMs = 90000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      if (await adapter.isReady(tabId)) return true;
+    } catch {
+      // The page is still loading and cannot be scripted yet.
+    }
+    await sleep(500);
+  }
+  return false;
+}
+
+async function seekMarker(video, marker, play) {
+  const adapter = adapterFor(video.pageUrl);
+  if (!adapter) {
+    showToast("這支影片沒有網址，無法開啟。請先在影片頁開啟一次 MPY Timecode Marker。");
+    return;
+  }
+
+  try {
+    let tab = await findVideoTab(video.videoKey);
+    if (tab) await chrome.tabs.update(tab.id, { active: true });
+    else tab = await chrome.tabs.create({ url: video.pageUrl, active: true });
+    await chrome.windows.update(tab.windowId, { focused: true });
+
+    if (!(await waitForPlayer(adapter, tab.id))) throw new Error("影片播放器載入逾時");
+    if (play) await adapter.play(tab.id, marker.time);
+    else await adapter.cue(tab.id, marker.time);
+  } catch (error) {
+    showToast(`無法${play ? "播放" : "CUE"}「${marker.note || "Marker"}」：${error.message}`);
+  }
 }
 
 $("search").addEventListener("input", renderList);

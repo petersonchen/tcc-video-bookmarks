@@ -54,7 +54,7 @@ details[open] > summary { margin-bottom: 8px; }
 .video-title a:hover { text-decoration: underline; }
 .marker {
   display: grid;
-  grid-template-columns: 90px minmax(0, 1fr) auto;
+  grid-template-columns: 90px minmax(0, 1fr) auto auto auto;
   gap: 6px;
   align-items: center;
   margin: 0 0 4px 16px;
@@ -62,6 +62,9 @@ details[open] > summary { margin-bottom: 8px; }
 .marker-edit { min-width: 0; padding: 5px 7px; border-color: transparent; background: #f8fafc; font-size: 13px; }
 .marker-edit:focus { border-color: #94a3b8; background: #fff; outline: none; }
 .marker-time { font-variant-numeric: tabular-nums; font-weight: 700; }
+.cue, .play { padding: 5px 9px; font-size: 12px; }
+.cue { background: #e2e8f0; color: #0f172a; }
+.play { background: #0f172a; color: white; }
 .delete { padding: 4px 8px; background: transparent; color: #94a3b8; font-size: 16px; }
 .delete:hover { color: #b91c1c; }
 .toast {

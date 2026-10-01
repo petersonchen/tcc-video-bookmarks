@@ -12,6 +12,19 @@ window.SiteAdapters.push({
     return chrome.tabs.sendMessage(tabId, { type: "GET_VIDEO_STATE" });
   },
 
+  // True once the player can seek; used before CUE / PLAY in a newly opened tab.
+  async isReady(tabId) {
+    const [{ result }] = await chrome.scripting.executeScript({
+      target: { tabId },
+      world: "MAIN",
+      func: () => {
+        const player = window.videojs?.getPlayer?.("vdoVideo");
+        return Boolean(player && player.readyState() >= 1);
+      }
+    });
+    return result;
+  },
+
   async cue(tabId, target) {
     return chrome.scripting.executeScript({
       target: { tabId },

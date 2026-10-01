@@ -35,6 +35,8 @@
 - 未搜尋時，只顯示最近 14 天內有修改的影片，天數可在「設定」修改，0 表示全部顯示。搜尋時會搜尋全部影片。
 - 搜尋框可輸入日期、影片標題、Marker 標題或 Timecode。以空白分隔多個詞時，每個詞都要符合。文字詞依字元順序比對，字元不必相連；只含數字與 `/`、`-`、`:` 的詞需完全相連，例如 `2026/09/30`、`01:20`。
 - 可直接修改 Timecode 與標題。修改後該 Marker 的最後修改日更新為當天。
+- 按 **CUE** 或 **PLAY** 會切換到該影片的分頁並跳至該時間；影片沒有開啟時會開新分頁，等播放器載入後再跳轉。YouTube 會等廣告結束。
+- 在新開的分頁按 **PLAY** 時，瀏覽器的自動播放政策可能阻擋播放，是否阻擋取決於使用者過去與該網站的互動。被阻擋時影片會停在該時間，需在影片上按播放。
 - 按 × 刪除 Marker 後，可在畫面下方按「復原」，僅能復原最近一次刪除。
 - Marker、匯出、匯入、設定各區塊可按標題收合。匯出、匯入、設定預設收合。
 
@@ -92,7 +94,7 @@ https://www.youtube.com/watch?v=dQw4w9WgXcQ
 - `sites/youtube.js`：YouTube 網站判斷，以及 YouTube player API 的 CUE / PLAY 控制
 - `content/video-controller.js`：從 TCC 與 YouTube 頁面取得影片狀態與穩定的影片識別資訊
 
-新增其他網站時，可依 `sites/tcc.js` 的介面實作 `matches()`、`getState()`、`cue()` 與 `play()`。
+新增其他網站時，可依 `sites/tcc.js` 的介面實作 `matches()`、`getState()`、`isReady()`、`cue()` 與 `play()`。
 
 ## 支援瀏覽器
 

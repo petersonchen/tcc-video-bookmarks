@@ -12,6 +12,19 @@ window.SiteAdapters.push({
     return chrome.tabs.sendMessage(tabId, { type: "GET_VIDEO_STATE" });
   },
 
+  // True once the player can seek and no ad is playing.
+  async isReady(tabId) {
+    const [{ result }] = await chrome.scripting.executeScript({
+      target: { tabId },
+      world: "MAIN",
+      func: () => {
+        const player = document.getElementById("movie_player");
+        return Boolean(player?.seekTo && player.getDuration?.() > 0 && !player.classList.contains("ad-showing"));
+      }
+    });
+    return result;
+  },
+
   async cue(tabId, target) {
     return chrome.scripting.executeScript({
       target: { tabId },
