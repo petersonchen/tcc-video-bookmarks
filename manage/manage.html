@@ -12,15 +12,16 @@
       <div class="title-row"><h1>MPY Timecode Marker 管理</h1><span id="version" class="version"></span></div>
     </header>
 
-    <section class="card">
-      <h2>Marker</h2>
+    <details class="card" open>
+      <summary><h2>Marker</h2></summary>
       <input id="search" type="search" placeholder="搜尋日期、影片標題、Marker 標題" autocomplete="off">
       <div id="list"></div>
       <div id="listEmpty" class="empty hidden"></div>
-    </section>
+      <div id="listHint" class="hint hidden"></div>
+    </details>
 
-    <section class="card">
-      <h2>匯出</h2>
+    <details class="card">
+      <summary><h2>匯出</h2></summary>
       <p class="muted">依 Marker 的最後修改日篩選，產生純文字。</p>
       <div class="date-row">
         <label>從 <input id="exportFrom" type="date"></label>
@@ -33,10 +34,10 @@
         <button id="exportCopy" class="primary">複製</button>
         <span id="exportCopied" class="muted hidden">已複製</span>
       </div>
-    </section>
+    </details>
 
-    <section class="card">
-      <h2>匯入</h2>
+    <details class="card">
+      <summary><h2>匯入</h2></summary>
       <p class="muted">貼上匯出的文字。同一支影片會與現有 Marker 合併，時間與標題都相同的 Marker 會略過。</p>
       <textarea id="importText" rows="12" placeholder="MPY Timecode Marker v1&#10;…"></textarea>
       <button id="importPreview" class="primary">預覽</button>
@@ -44,7 +45,13 @@
         <div id="importSummary" class="summary"></div>
         <button id="importApply" class="primary">匯入</button>
       </div>
-    </section>
+    </details>
+
+    <details class="card">
+      <summary><h2>設定</h2></summary>
+      <label class="setting">未搜尋時顯示最近 <input id="recentDays" type="number" min="0" step="1"> 天的影片</label>
+      <p class="muted">依影片的最後修改日計算，包含今天。0 表示全部顯示。搜尋時不受此設定限制。</p>
+    </details>
   </main>
   <div id="undo" class="toast hidden"><span id="undoText"></span><button id="undoButton">復原</button></div>
   <script src="../lib/markers.js"></script>

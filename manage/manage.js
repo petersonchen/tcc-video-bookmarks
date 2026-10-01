@@ -51,6 +51,34 @@ async function changeMarker(videoKey, id, changes) {
   await chrome.storage.local.set({ [key]: stored });
 }
 
+// ---- Settings ----
+
+const DEFAULT_SETTINGS = { recentDays: 14 };
+let settings = { ...DEFAULT_SETTINGS };
+
+async function loadSettings() {
+  const stored = (await chrome.storage.local.get("settings")).settings;
+  settings = { ...DEFAULT_SETTINGS, ...stored };
+  $("recentDays").value = settings.recentDays;
+}
+
+$("recentDays").addEventListener("change", async () => {
+  const days = Number($("recentDays").value);
+  if (!Number.isInteger(days) || days < 0) {
+    $("recentDays").value = settings.recentDays;
+    return;
+  }
+  await chrome.storage.local.set({ settings: { ...settings, recentDays: days } });
+});
+
+// Earliest date shown without a search, or "" to show every date.
+function recentCutoff() {
+  if (!settings.recentDays) return "";
+  const date = new Date();
+  date.setDate(date.getDate() - (settings.recentDays - 1));
+  return localDate(date);
+}
+
 // ---- Marker list ----
 
 let videos = [];
@@ -84,10 +112,17 @@ async function refreshList() {
 }
 
 function renderList() {
-  const query = $("search").value;
+  const query = $("search").value.trim();
+  // Without a search, only recent videos are shown; a search covers every video.
+  const cutoff = query ? "" : recentCutoff();
+  let hiddenVideos = 0;
   const groups = new Map();
   videos.forEach((video) => {
     const date = localDate(video.lastUpdated);
+    if (date < cutoff) {
+      hiddenVideos += 1;
+      return;
+    }
     const markers = video.markers.filter((marker) =>
       fuzzyMatch(`${displayDate(date)} ${date} ${video.title} ${formatTime(marker.time)} ${marker.note || ""}`, query)
     );
@@ -106,7 +141,11 @@ function renderList() {
   });
 
   $("listEmpty").textContent = videos.length ? "沒有符合的 Marker" : "尚未建立 Marker";
-  $("listEmpty").classList.toggle("hidden", groups.size > 0);
+  $("listEmpty").classList.toggle("hidden", groups.size > 0 || hiddenVideos > 0);
+  $("listHint").textContent = hiddenVideos
+    ? `另有 ${hiddenVideos} 支影片的最後修改日不在最近 ${settings.recentDays} 天內，未顯示。可用搜尋找到。`
+    : "";
+  $("listHint").classList.toggle("hidden", hiddenVideos === 0);
 }
 
 function renderVideo(video) {
@@ -188,8 +227,9 @@ function showUndo(videoKey, marker) {
 $("search").addEventListener("input", renderList);
 
 // Re-rendering would drop an edit in progress, so wait until focus leaves the list.
-chrome.storage.onChanged.addListener((_changes, area) => {
+chrome.storage.onChanged.addListener(async (changes, area) => {
   if (area !== "local") return;
+  if (changes.settings) await loadSettings();
   if (document.activeElement?.closest("#list")) pendingRefresh = true;
   else refreshList();
 });
@@ -389,4 +429,4 @@ $("version").textContent = `v${chrome.runtime.getManifest().version}`;
 const today = localDate(Date.now());
 $("exportFrom").value = today;
 $("exportTo").value = today;
-refreshList();
+loadSettings().then(refreshList);

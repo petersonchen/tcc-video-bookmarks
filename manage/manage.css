@@ -20,7 +20,16 @@ p.muted { margin: 0 0 12px; }
   border-radius: 8px;
   background: #fff;
 }
+summary { display: flex; align-items: center; gap: 6px; cursor: pointer; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: "▸"; color: #64748b; font-size: 12px; }
+details[open] > summary::before { content: "▾"; }
+summary h2 { margin: 0; }
+details[open] > summary { margin-bottom: 8px; }
 .empty { padding: 12px; text-align: center; color: #64748b; font-size: 13px; }
+.hint { margin-top: 12px; color: #64748b; font-size: 13px; text-align: center; }
+.setting { display: block; margin-bottom: 6px; font-size: 14px; }
+.setting input { width: 72px; margin: 0 4px; text-align: right; }
 
 #search { display: block; width: 100%; margin-bottom: 12px; }
 .date-group { margin-top: 16px; }
