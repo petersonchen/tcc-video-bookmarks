@@ -1,4 +1,6 @@
 * { box-sizing: border-box; }
+/* Reserve the scrollbar space so the layout does not shift when search results get short. */
+html { scrollbar-gutter: stable; }
 body {
   margin: 0;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
