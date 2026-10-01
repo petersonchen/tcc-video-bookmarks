@@ -1,6 +1,6 @@
-window.VideoCueSites = window.VideoCueSites || [];
+window.SiteAdapters = window.SiteAdapters || [];
 
-window.VideoCueSites.push({
+window.SiteAdapters.push({
   id: "tcc",
   name: "臺北市議會雲端議事影音",
 

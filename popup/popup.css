@@ -59,7 +59,7 @@ button {
   font-size: 13px;
   font-weight: 700;
 }
-.bookmark {
+.marker {
   display: grid;
   grid-template-columns: 82px minmax(90px, 1fr) auto auto auto;
   gap: 7px;
@@ -69,10 +69,10 @@ button {
   border-radius: 8px;
   background: #fff;
 }
-.bookmark-edit { min-width: 0; padding: 6px 7px; border-color: transparent; background: #f8fafc; font-size: 12px; }
-.bookmark-edit:focus { border-color: #94a3b8; background: #fff; outline: none; }
-.bookmark-time { font-variant-numeric: tabular-nums; font-weight: 700; }
-.bookmark-note { font-size: 13px; }
+.marker-edit { min-width: 0; padding: 6px 7px; border-color: transparent; background: #f8fafc; font-size: 12px; }
+.marker-edit:focus { border-color: #94a3b8; background: #fff; outline: none; }
+.marker-time { font-variant-numeric: tabular-nums; font-weight: 700; }
+.marker-note { font-size: 13px; }
 .cue { background: #e2e8f0; color: #0f172a; }
 .play { background: #0f172a; color: white; }
 .delete { background: transparent; color: #94a3b8; font-size: 16px; padding: 4px 6px; }

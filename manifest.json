@@ -1,12 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "Video Cue Bookmarks",
+  "name": "MPY Timecode Marker",
   "version": "0.2.0",
-  "description": "Save, cue, and play timecode bookmarks on supported video websites.",
+  "description": "Save, cue, and play timecode markers on supported video websites.",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": ["https://live.tcc.gov.tw/*"],
   "action": {
-    "default_title": "Video Cue Bookmarks",
+    "default_title": "MPY Timecode Marker",
     "default_popup": "popup/popup.html"
   },
   "content_scripts": [{

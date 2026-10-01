@@ -1,6 +1,6 @@
 let activeTab;
 let state;
-let bookmarks = [];
+let markers = [];
 let siteAdapter;
 
 const $ = (id) => document.getElementById(id);
@@ -33,55 +33,55 @@ async function playAtTime(target) {
 }
 
 function storageKey(videoKey) {
-  return `bookmarks:${videoKey}`;
+  return `markers:${videoKey}`;
 }
 
-async function loadBookmarks() {
+async function loadMarkers() {
   const key = storageKey(state.videoKey);
   const result = await chrome.storage.local.get(key);
-  bookmarks = Array.isArray(result[key]) ? result[key] : [];
-  bookmarks.sort((a, b) => a.time - b.time);
+  markers = Array.isArray(result[key]) ? result[key] : [];
+  markers.sort((a, b) => a.time - b.time);
   render();
 }
 
 async function persist() {
-  await chrome.storage.local.set({ [storageKey(state.videoKey)]: bookmarks });
+  await chrome.storage.local.set({ [storageKey(state.videoKey)]: markers });
 }
 
 function render() {
-  const list = $("bookmarks");
+  const list = $("markers");
   list.textContent = "";
-  $("count").textContent = bookmarks.length ? `${bookmarks.length} 個` : "";
-  $("empty").classList.toggle("hidden", bookmarks.length > 0);
+  $("count").textContent = markers.length ? `${markers.length} 個` : "";
+  $("empty").classList.toggle("hidden", markers.length > 0);
 
-  bookmarks.forEach((bookmark) => {
+  markers.forEach((marker) => {
     const row = document.createElement("div");
-    row.className = "bookmark";
+    row.className = "marker";
 
     const time = document.createElement("input");
-    time.className = "bookmark-edit bookmark-time";
-    time.value = formatTime(bookmark.time);
+    time.className = "marker-edit marker-time";
+    time.value = formatTime(marker.time);
     time.title = "編輯 Timecode";
     time.addEventListener("change", async () => {
       const value = parseTimecode(time.value);
       if (value === null) {
-        time.value = formatTime(bookmark.time);
+        time.value = formatTime(marker.time);
         return;
       }
-      bookmark.time = value;
+      marker.time = value;
       await persist();
-      bookmarks.sort((a, b) => a.time - b.time);
+      markers.sort((a, b) => a.time - b.time);
       render();
     });
 
     const note = document.createElement("input");
-    note.className = "bookmark-edit bookmark-note";
-    note.value = bookmark.note || "Bookmark";
+    note.className = "marker-edit marker-note";
+    note.value = marker.note || "Marker";
     note.title = "編輯標題";
     note.addEventListener("change", async () => {
-      bookmark.note = note.value.trim() || "Bookmark";
+      marker.note = note.value.trim() || "Marker";
       await persist();
-      note.value = bookmark.note;
+      note.value = marker.note;
     });
 
     const cue = document.createElement("button");
@@ -89,9 +89,9 @@ function render() {
     cue.textContent = "CUE";
     cue.addEventListener("click", async () => {
       try {
-        await siteAdapter.cue(activeTab.id, bookmark.time);
+        await siteAdapter.cue(activeTab.id, marker.time);
       } catch (error) {
-        console.error("[Video Cue Bookmarks] CUE failed", error);
+        console.error("[MPY Timecode Marker] CUE failed", error);
       }
       window.close();
     });
@@ -101,9 +101,9 @@ function render() {
     play.textContent = "PLAY";
     play.addEventListener("click", async () => {
       try {
-        await siteAdapter.play(activeTab.id, bookmark.time);
+        await siteAdapter.play(activeTab.id, marker.time);
       } catch (error) {
-        console.error("[Video Cue Bookmarks] PLAY failed", error);
+        console.error("[MPY Timecode Marker] PLAY failed", error);
       }
       window.close();
     });
@@ -113,7 +113,7 @@ function render() {
     remove.title = "刪除";
     remove.textContent = "×";
     remove.addEventListener("click", async () => {
-      bookmarks = bookmarks.filter((item) => item.id !== bookmark.id);
+      markers = markers.filter((item) => item.id !== marker.id);
       await persist();
       render();
     });
@@ -131,9 +131,9 @@ function showError(text) {
 async function init() {
   [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-  siteAdapter = (window.VideoCueSites || []).find((adapter) => adapter.matches(activeTab?.url));
+  siteAdapter = (window.SiteAdapters || []).find((adapter) => adapter.matches(activeTab?.url));
   if (!siteAdapter) {
-    showError("目前網站尚未支援 Video Cue Bookmarks。");
+    showError("目前網站尚未支援 MPY Timecode Marker。");
     return;
   }
 
@@ -152,9 +152,9 @@ async function init() {
   $("version").textContent = `v${chrome.runtime.getManifest().version}`;
   $("videoTitle").textContent = state.pageTitle || siteAdapter.name || "Video";
   $("currentTime").textContent = state.formattedTime;
-  $("note").value = `Bookmark ${state.formattedTime}`;
+  $("note").value = `Marker ${state.formattedTime}`;
   $("controls").classList.remove("hidden");
-  await loadBookmarks();
+  await loadMarkers();
   $("note").focus();
   $("note").select();
 }
@@ -183,8 +183,8 @@ $("save").addEventListener("click", async () => {
     const latest = await siteAdapter.getState(activeTab.id);
     if (!latest?.ok) throw new Error(latest?.error || "無法取得影片時間");
 
-    const note = $("note").value.trim() || `Bookmark ${latest.formattedTime}`;
-    bookmarks.push({
+    const note = $("note").value.trim() || `Marker ${latest.formattedTime}`;
+    markers.push({
       id: crypto.randomUUID(),
       time: latest.currentTime,
       note,
@@ -194,7 +194,7 @@ $("save").addEventListener("click", async () => {
     await persist();
     $("currentTime").textContent = latest.formattedTime;
     $("note").value = "";
-    await loadBookmarks();
+    await loadMarkers();
   } catch (error) {
     showError(error.message);
   }

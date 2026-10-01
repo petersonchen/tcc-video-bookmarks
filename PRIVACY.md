@@ -1,22 +1,22 @@
 # 隱私權說明
 
-**Video Cue Bookmarks** 重視使用者隱私。本文件說明此瀏覽器擴充功能如何處理資料。
+**MPY Timecode Marker** 重視使用者隱私。本文件說明此瀏覽器擴充功能如何處理資料。
 
 ## 資料儲存
 
-Video Cue Bookmarks 會將使用者建立的 Bookmark 儲存在瀏覽器提供的 `chrome.storage.local` 本機儲存空間。
+MPY Timecode Marker 會將使用者建立的 Marker 儲存在瀏覽器提供的 `chrome.storage.local` 本機儲存空間。
 
-Bookmark 可能包含：
+Marker 可能包含：
 
 - 影片識別資訊
-- Bookmark Timecode
-- 使用者自行輸入的 Bookmark 標題
+- Marker Timecode
+- 使用者自行輸入的 Marker 標題
 
-這些資料用於在同一支影片中顯示及使用 Bookmark。
+這些資料用於在同一支影片中顯示及使用 Marker。
 
 ## 資料傳輸
 
-本擴充功能不會將 Bookmark 或其他使用者資料傳送至開發者的伺服器或第三方伺服器。
+本擴充功能不會將 Marker 或其他使用者資料傳送至開發者的伺服器或第三方伺服器。
 
 本擴充功能沒有自有後端伺服器或外部資料庫。
 
@@ -31,17 +31,17 @@ Bookmark 可能包含：
 
 ## 網站權限
 
-Video Cue Bookmarks 僅會針對明確支援的影音網站申請必要的網站存取權限，以讀取目前影片播放時間及執行 CUE、PLAY 等播放器控制功能。
+MPY Timecode Marker 僅會針對明確支援的影音網站申請必要的網站存取權限，以讀取目前影片播放時間及執行 CUE、PLAY 等播放器控制功能。
 
 目前版本僅支援 `https://live.tcc.gov.tw/*`。未來新增網站支援時，才會加入該網站所需的權限，不會預先要求存取所有網站。
 
 ## 資料刪除
 
-使用者可以刪除個別 Bookmark。移除瀏覽器擴充功能或清除該擴充功能的本機儲存資料，也會移除儲存在瀏覽器中的 Bookmark。
+使用者可以刪除個別 Marker。移除瀏覽器擴充功能或清除該擴充功能的本機儲存資料，也會移除儲存在瀏覽器中的 Marker。
 
 ## 聲明
 
-Video Cue Bookmarks 為獨立開發的瀏覽器輔助工具，並非任何支援網站或機構的官方產品，亦不代表其已對本專案提供背書、認證或合作。
+MPY Timecode Marker 為獨立開發的瀏覽器輔助工具，並非任何支援網站或機構的官方產品，亦不代表其已對本專案提供背書、認證或合作。
 
 ## 聯絡與授權
 

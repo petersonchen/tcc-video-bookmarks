@@ -15,7 +15,7 @@
       if (volatile.test(key)) url.searchParams.delete(key);
     });
 
-    // URLSearchParams order can vary; sorting keeps the bookmark key stable.
+    // URLSearchParams order can vary; sorting keeps the marker key stable.
     url.searchParams.sort();
     return url.href;
   }
