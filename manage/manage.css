@@ -22,20 +22,54 @@ p.muted { margin: 0 0 12px; }
 }
 .empty { padding: 12px; text-align: center; color: #64748b; font-size: 13px; }
 
-.video {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 12px;
-  align-items: baseline;
-  padding: 8px 0;
-  border-top: 1px solid #e2e8f0;
+#search { display: block; width: 100%; margin-bottom: 12px; }
+.date-group { margin-top: 16px; }
+.date-group:first-child { margin-top: 0; }
+.date {
+  margin: 0 0 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e2e8f0;
   font-size: 14px;
+  font-variant-numeric: tabular-nums;
 }
-.video:first-child { border-top: 0; }
-.video-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.video a { color: #2563eb; text-decoration: none; }
-.video a:hover { text-decoration: underline; }
-.video .muted { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.video { margin: 0 0 10px 12px; }
+.video-title {
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+}
+.video-title a { color: #2563eb; text-decoration: none; }
+.video-title a:hover { text-decoration: underline; }
+.marker {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+  margin: 0 0 4px 16px;
+}
+.marker-edit { min-width: 0; padding: 5px 7px; border-color: transparent; background: #f8fafc; font-size: 13px; }
+.marker-edit:focus { border-color: #94a3b8; background: #fff; outline: none; }
+.marker-time { font-variant-numeric: tabular-nums; font-weight: 700; }
+.delete { padding: 4px 8px; background: transparent; color: #94a3b8; font-size: 16px; }
+.delete:hover { color: #b91c1c; }
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #0f172a;
+  color: white;
+  font-size: 13px;
+  transform: translateX(-50%);
+}
+.toast button { padding: 4px 10px; background: #fff; color: #0f172a; }
 
 .date-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 12px; }
 .date-row label { font-size: 13px; font-weight: 600; }

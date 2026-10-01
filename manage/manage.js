@@ -15,51 +15,192 @@ function element(tag, className, text) {
   return node;
 }
 
+// Videos with their live markers. A video's date is the latest update among
+// those markers, and the list groups videos by that date.
 async function loadVideos() {
   const all = await chrome.storage.local.get(null);
   return Object.keys(all)
-    .filter((key) => key.startsWith("markers:") && Array.isArray(all[key]) && all[key].length)
+    .filter((key) => key.startsWith("markers:") && Array.isArray(all[key]))
     .map((key) => {
       const videoKey = key.slice("markers:".length);
       const meta = all[videoMetaKey(videoKey)] || {};
+      const markers = all[key].filter(isLive).sort((a, b) => a.time - b.time);
       return {
         videoKey,
         title: meta.title || videoKey,
         pageUrl: meta.pageUrl || "",
-        markers: [...all[key]].sort((a, b) => a.time - b.time)
+        markers,
+        lastUpdated: markers.map(markerUpdatedAt).sort().at(-1)
       };
     })
+    .filter((video) => video.markers.length)
     .sort((a, b) => a.title.localeCompare(b.title, "zh-Hant"));
 }
 
-async function renderVideos() {
-  const videos = await loadVideos();
-  const list = $("videos");
-  list.textContent = "";
-  $("videosEmpty").classList.toggle("hidden", videos.length > 0);
+// Reads the stored array again so changes made in the popup meanwhile are kept.
+// A value of undefined removes the field.
+async function changeMarker(videoKey, id, changes) {
+  const key = markersKey(videoKey);
+  const stored = (await chrome.storage.local.get(key))[key] || [];
+  const marker = stored.find((item) => item.id === id);
+  if (!marker) return;
+  Object.entries(changes).forEach(([field, value]) => {
+    if (value === undefined) delete marker[field];
+    else marker[field] = value;
+  });
+  await chrome.storage.local.set({ [key]: stored });
+}
 
-  videos.forEach((video) => {
-    const row = element("div", "video");
-    const title = element("div", "video-title");
-    if (video.pageUrl) {
-      const link = element("a", "", video.title);
-      link.href = video.pageUrl;
-      link.target = "_blank";
-      title.append(link);
-    } else {
-      title.textContent = video.title;
+// ---- Marker list ----
+
+let videos = [];
+let pendingRefresh = false;
+let undoTimer;
+
+// fzf-like: every space-separated term must appear in order, not necessarily
+// adjacent. Terms made only of digits and date or time separators must appear
+// as typed; in order they would match almost any date or timecode.
+function fuzzyMatch(text, query) {
+  const haystack = text.toLowerCase();
+  return query.toLowerCase().split(/\s+/).filter(Boolean).every((term) => {
+    if (/^[\d/:-]+$/.test(term)) return haystack.includes(term);
+    let position = 0;
+    for (const char of term) {
+      position = haystack.indexOf(char, position);
+      if (position === -1) return false;
+      position += char.length;
     }
-    title.title = video.title;
-
-    const lastUpdated = video.markers.map(markerUpdatedAt).sort().at(-1);
-    row.append(
-      title,
-      element("span", "muted", `${video.markers.length} 個 Marker`),
-      element("span", "muted", `最後修改 ${localDate(lastUpdated)}`)
-    );
-    list.append(row);
+    return true;
   });
 }
+
+function displayDate(date) {
+  return date.replaceAll("-", "/");
+}
+
+async function refreshList() {
+  videos = await loadVideos();
+  renderList();
+}
+
+function renderList() {
+  const query = $("search").value;
+  const groups = new Map();
+  videos.forEach((video) => {
+    const date = localDate(video.lastUpdated);
+    const markers = video.markers.filter((marker) =>
+      fuzzyMatch(`${displayDate(date)} ${date} ${video.title} ${formatTime(marker.time)} ${marker.note || ""}`, query)
+    );
+    if (!markers.length) return;
+    if (!groups.has(date)) groups.set(date, []);
+    groups.get(date).push({ ...video, markers });
+  });
+
+  const list = $("list");
+  list.textContent = "";
+  [...groups.keys()].sort().reverse().forEach((date) => {
+    const group = element("section", "date-group");
+    group.append(element("h3", "date", displayDate(date)));
+    groups.get(date).forEach((video) => group.append(renderVideo(video)));
+    list.append(group);
+  });
+
+  $("listEmpty").textContent = videos.length ? "沒有符合的 Marker" : "尚未建立 Marker";
+  $("listEmpty").classList.toggle("hidden", groups.size > 0);
+}
+
+function renderVideo(video) {
+  const block = element("div", "video");
+  const heading = element("div", "video-title");
+  if (video.pageUrl) {
+    const link = element("a", "", video.title);
+    link.href = video.pageUrl;
+    link.target = "_blank";
+    heading.append(link);
+  } else {
+    heading.textContent = video.title;
+  }
+  heading.title = video.title;
+  block.append(heading);
+  video.markers.forEach((marker) => block.append(renderMarker(video, marker)));
+  return block;
+}
+
+function renderMarker(video, marker) {
+  const row = element("div", "marker");
+
+  const time = element("input", "marker-edit marker-time");
+  time.value = formatTime(marker.time);
+  time.title = "編輯 Timecode";
+  time.addEventListener("change", async () => {
+    const value = parseTimecode(time.value);
+    if (value === null) {
+      time.value = formatTime(marker.time);
+      return;
+    }
+    await changeMarker(video.videoKey, marker.id, { time: value, updatedAt: new Date().toISOString() });
+  });
+
+  const note = element("input", "marker-edit marker-note");
+  note.value = marker.note || "Marker";
+  note.title = "編輯標題";
+  note.addEventListener("change", async () => {
+    await changeMarker(video.videoKey, marker.id, {
+      note: note.value.trim() || "Marker",
+      updatedAt: new Date().toISOString()
+    });
+  });
+
+  [time, note].forEach((input) => {
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") input.blur();
+    });
+  });
+
+  const remove = element("button", "delete", "×");
+  remove.title = "刪除";
+  remove.addEventListener("click", async () => {
+    await changeMarker(video.videoKey, marker.id, { deletedAt: new Date().toISOString() });
+    showUndo(video.videoKey, marker);
+  });
+
+  row.append(time, note, remove);
+  return row;
+}
+
+function hideUndo() {
+  clearTimeout(undoTimer);
+  $("undo").classList.add("hidden");
+}
+
+// Only the latest deletion can be undone.
+function showUndo(videoKey, marker) {
+  $("undoText").textContent = `已刪除「${marker.note || "Marker"}」`;
+  $("undoButton").onclick = async () => {
+    hideUndo();
+    await changeMarker(videoKey, marker.id, { deletedAt: undefined });
+  };
+  $("undo").classList.remove("hidden");
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(hideUndo, 8000);
+}
+
+$("search").addEventListener("input", renderList);
+
+// Re-rendering would drop an edit in progress, so wait until focus leaves the list.
+chrome.storage.onChanged.addListener((_changes, area) => {
+  if (area !== "local") return;
+  if (document.activeElement?.closest("#list")) pendingRefresh = true;
+  else refreshList();
+});
+
+$("list").addEventListener("focusout", () => {
+  setTimeout(() => {
+    if (!pendingRefresh || document.activeElement?.closest("#list")) return;
+    pendingRefresh = false;
+    refreshList();
+  });
+});
 
 // ---- Export ----
 
@@ -240,7 +381,6 @@ $("importApply").addEventListener("click", async () => {
   $("importSummary").textContent = `已匯入 ${total} 個 Marker。`;
   $("importApply").disabled = true;
   $("importText").value = "";
-  await renderVideos();
 });
 
 // ---- Init ----
@@ -249,4 +389,4 @@ $("version").textContent = `v${chrome.runtime.getManifest().version}`;
 const today = localDate(Date.now());
 $("exportFrom").value = today;
 $("exportTo").value = today;
-renderVideos();
+refreshList();

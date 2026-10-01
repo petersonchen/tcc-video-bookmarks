@@ -13,9 +13,10 @@
     </header>
 
     <section class="card">
-      <h2>影片</h2>
-      <div id="videos"></div>
-      <div id="videosEmpty" class="empty hidden">尚未建立 Marker</div>
+      <h2>Marker</h2>
+      <input id="search" type="search" placeholder="搜尋日期、影片標題、Marker 標題" autocomplete="off">
+      <div id="list"></div>
+      <div id="listEmpty" class="empty hidden"></div>
     </section>
 
     <section class="card">
@@ -45,6 +46,7 @@
       </div>
     </section>
   </main>
+  <div id="undo" class="toast hidden"><span id="undoText"></span><button id="undoButton">復原</button></div>
   <script src="../lib/markers.js"></script>
   <script src="../lib/video-key.js"></script>
   <script src="manage.js"></script>

@@ -31,10 +31,11 @@ async function saveVideoMeta() {
 function render() {
   const list = $("markers");
   list.textContent = "";
-  $("count").textContent = markers.length ? `${markers.length} 個` : "";
-  $("empty").classList.toggle("hidden", markers.length > 0);
+  const live = markers.filter(isLive);
+  $("count").textContent = live.length ? `${live.length} 個` : "";
+  $("empty").classList.toggle("hidden", live.length > 0);
 
-  markers.forEach((marker) => {
+  live.forEach((marker) => {
     const row = document.createElement("div");
     row.className = "marker";
 
@@ -95,7 +96,7 @@ function render() {
     remove.title = "刪除";
     remove.textContent = "×";
     remove.addEventListener("click", async () => {
-      markers = markers.filter((item) => item.id !== marker.id);
+      marker.deletedAt = new Date().toISOString();
       await persist();
       render();
     });
