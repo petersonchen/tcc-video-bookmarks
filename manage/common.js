@@ -9,7 +9,7 @@ function element(tag, className, text) {
   return node;
 }
 
-const SITE_LABELS = { tcc: "TCC", youtube: "YouTube" };
+const SITE_LABELS = { tcc: "TCC", youtube: "YouTube", ivod: "IVOD" };
 
 let videos = [];
 let snapshot = {};

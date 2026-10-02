@@ -2,7 +2,7 @@
 
 **MPY Timecode Marker** 是一套 Chrome / Microsoft Edge 瀏覽器擴充功能，可以在支援的網站影片中建立 Timecode Marker，並快速定位、預備及播放指定片段。
 
-本專案採「單一 Extension、多網站支援」的方向設計。網站專屬的播放器控制封裝為 Site Adapter；目前有 `sites/tcc.js`（臺北市議會雲端議事影音）與 `sites/youtube.js`（YouTube）。
+本專案採「單一 Extension、多網站支援」的方向設計。網站專屬的播放器控制封裝為 Site Adapter；目前有 `sites/tcc.js`（臺北市議會雲端議事影音）、`sites/youtube.js`（YouTube）與 `sites/ivod.js`（立法院議事轉播 IVOD）。
 
 ## 功能
 
@@ -59,7 +59,7 @@
 - **backlog** 在 EDIT 顯示；CUE／PLAY 未搜尋時隱藏，搜尋時仍涵蓋 backlog。顯示時固定在最下面，不計入 Episode 顯示數量，僅顯示未加入任何 Episode 的影片，依 Marker 的最後修改時間由新到舊排列。尚未歸屬的新影片自動進入 backlog；未顯示的舊 Episode 仍算歸屬。
 - Episode 與 backlog 標題顯示結尾冒號，名稱本身不變。搜尋 `ep1:` 只符合 ep1；`ep1: 預算` 只在 ep1 搜尋「預算」，`backlog:` 只搜尋 backlog。名稱含空白時使用引號，例如 `"EP 102":`。
 - 搜尋帶編號的 Episode 名稱時採前綴比對：`ep10` 會符合 `ep101`、`ep102`、`ep103`，`ep102` 會符合 `ep102`、`ep1020`，不會符合 `ep101` 或 `ep103`；大小寫不影響比對，也支援 `EP 102` 名稱。
-- 搜尋可輸入 Episode 名稱、網站、影片標題、Marker 標題或 Timecode。以空白分隔多個詞時，每個詞都要符合。文字依字元順序比對，字元不必相連；只含數字與 `/`、`-`、`:` 的詞需完全相連。網站名稱的開頭（例如 `y`、`yout`、`t`、`tcc`）或 `yt` 會符合該網站。搜尋時不提供拖曳。
+- 搜尋可輸入 Episode 名稱、網站、影片標題、Marker 標題或 Timecode。以空白分隔多個詞時，每個詞都要符合。文字依字元順序比對，字元不必相連；只含數字與 `/`、`-`、`:` 的詞需完全相連。網站名稱的開頭（例如 `y`、`yout`、`t`、`tcc`、`i`、`ivod`）或 `yt` 會符合該網站。搜尋時不提供拖曳。
 - 影片庫、匯出、匯入、設定區塊可按標題收合；匯出、匯入、設定預設收合。Episode 本身不收合。
 
 ## 匯出與匯入
@@ -136,6 +136,15 @@ node tests/manage.browser.cjs
 - Marker 依 video ID 區分影片
 - 廣告播放期間無法儲存 Marker
 
+### 立法院議事轉播 IVOD
+
+- 網域：`https://ivod.ly.gov.tw/`
+- 支援頁面：`/Play/Clip/` 委員發言片段與 `/Play/Full/` 完整會議影片；不支援直播頁
+- 播放器：Clappr（頁面的 `_player`）
+- 支援 Marker、CUE、PLAY 與直接輸入 Timecode 播放
+- Marker 依影片類型（Clip 或 Full）與影片編號區分；同一影片的寬頻（1M）與窄頻（300K）網址共用 Marker
+- 影片標題使用會議名稱，委員發言片段另加委員名稱
+
 未來新增網站時，只需增加對應的 Site Adapter 與該網站必要的權限，不需要修改共用 Marker UI，也不會預先要求存取所有網站。
 
 ### Site Adapter 架構
@@ -156,7 +165,8 @@ node tests/manage.browser.cjs
 - `lib/video-key.js`：由影片網址決定 Marker 的儲存 key，content script 與管理頁共用
 - `sites/tcc.js`：臺北市議會網站判斷，以及 Video.js 的 CUE / PLAY 控制
 - `sites/youtube.js`：YouTube 網站判斷，以及 YouTube player API 的 CUE / PLAY 控制
-- `content/video-controller.js`：從 TCC 與 YouTube 頁面取得影片狀態與穩定的影片識別資訊
+- `sites/ivod.js`：IVOD 網站判斷，以及 Clappr 的 CUE / PLAY 控制
+- `content/video-controller.js`：從 TCC、YouTube 與 IVOD 頁面取得影片狀態與穩定的影片識別資訊
 
 新增其他網站時，可依 `sites/tcc.js` 的介面設定 `urlPattern`，實作 `matches()`、`getState()`、`isReady()`、`cue()` 與 `play()`。
 

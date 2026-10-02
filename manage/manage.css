@@ -88,6 +88,7 @@ details[open] > summary { margin-bottom: 8px; }
 .video.drop-after { box-shadow: 0 2px 0 #2563eb; }
 .site-tcc { background: #1e3a8a; }
 .site-youtube { background: #dc2626; }
+.site-ivod { background: #047857; }
 .video-title {
   min-width: 0;
   overflow: hidden;

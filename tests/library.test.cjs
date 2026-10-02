@@ -267,3 +267,15 @@ test('Imports accept up to 50000 markers and merge them in linear time', () => {
   const repeated = library.planImport(limit, library.importUpdates(plan, seed()), '', '');
   assert.equal(repeated.videos[0].duplicates, 50000);
 });
+
+test('IVOD keys share one video across bandwidths and keep Clip and Full apart', () => {
+  const keyOf = vm.runInContext('videoKeyFromUrl', context);
+  assert.equal(keyOf('https://ivod.ly.gov.tw/Play/Clip/1M/168273'), 'ivod:clip:168273');
+  assert.equal(keyOf('https://ivod.ly.gov.tw/Play/Clip/300K/168273?x=1#t'), 'ivod:clip:168273');
+  assert.equal(keyOf('https://ivod.ly.gov.tw/Play/Full/1M/17330'), 'ivod:full:17330');
+  assert.equal(keyOf('https://ivod.ly.gov.tw/Demand?targetSession=current'), null);
+  assert.equal(vm.runInContext('siteFromVideoKey', context)('ivod:full:17330'), 'ivod');
+  const parsed = library.parse('url,timecode,note\nhttps://ivod.ly.gov.tw/Play/Full/300K/17330,1:00,開場');
+  assert.equal(parsed.errors.length, 0);
+  assert.equal(parsed.videos[0].site, 'ivod');
+});

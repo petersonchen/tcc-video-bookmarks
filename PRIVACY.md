@@ -37,7 +37,7 @@ Marker 可能包含：
 
 MPY Timecode Marker 僅會針對明確支援的影音網站申請必要的網站存取權限，以讀取目前影片播放時間及執行 CUE、PLAY 等播放器控制功能。
 
-目前版本僅支援 `https://live.tcc.gov.tw/*` 與 `https://www.youtube.com/*`。未來新增網站支援時，才會加入該網站所需的權限，不會預先要求存取所有網站。
+目前版本僅支援 `https://live.tcc.gov.tw/*`、`https://www.youtube.com/*` 與 `https://ivod.ly.gov.tw/*`。未來新增網站支援時，才會加入該網站所需的權限，不會預先要求存取所有網站。
 
 ## 資料刪除
 
