@@ -26,7 +26,7 @@
 2. 在影片播放至需要記錄的位置時，開啟 MPY Timecode Marker。
 3. 輸入 Marker 說明後，按下「＋ 儲存目前位置」。
 4. 需要使用片段時，按 **CUE** 預備，或按 **PLAY** 直接跳至該時間播放。
-5. 已建立的 Marker 可直接修改 Timecode 與標題。標題是「Marker」或「Marker HH:MM:SS」時，點進去會先全選，直接輸入即可取代；管理頁 EDIT 模式也相同。
+5. 已建立的 Marker 可直接修改 Timecode 與標題。標題是「Marker」或「Marker HH:MM:SS」時，點進去會先全選，直接輸入即可取代。在 Timecode 欄位按 ↑／↓ 可加減 1 秒，按 Enter 或離開欄位後儲存。管理頁 EDIT 模式也相同。
 6. 也可以在「跳到時間」輸入例如 `01:23:45`，再按 **PLAY**。
 7. CUE 或 PLAY 失敗時，popup 保持開啟並顯示原因。
 8. popup 在儲存按鈕下方顯示目前的快捷鍵；設定了 CUE／PLAY 提前秒數時，Marker 清單標題旁會顯示提前秒數。
