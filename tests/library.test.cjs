@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const { webcrypto } = require('node:crypto');
 const path = require('node:path');
 const context = vm.createContext({ crypto: webcrypto, URL, navigator: {} });
-for (const file of ['lib/markers.js', 'lib/video-key.js', 'lib/library.js']) {
+for (const file of ['lib/markers.js', 'lib/video-key.js', 'lib/import-formats.js', 'lib/library.js']) {
   vm.runInContext(readFileSync(path.join(__dirname, '..', file), 'utf8'), context);
 }
 const library = vm.runInContext('Library', context);
@@ -96,8 +96,8 @@ test('Import duplicate markers can still add Episode membership; tombstones rema
   assert.equal(library.importUpdates(tombstone, all)[`markers:${videoKey}`][0].deletedAt, date);
 });
 
-test('Legacy import combines repeated URLs and deduplicates content without resurrecting deletions', () => {
-  const text = 'MPY Timecode Marker v1\n匯出摘要\n\n▶ A\nhttps://www.youtube.com/watch?v=abcdefghijk\n00:00:05 開場\n\n▶ A again\nhttps://www.youtube.com/watch?v=abcdefghijk\n00:00:08 第二段';
+test('Table import combines repeated URLs and deduplicates content without resurrecting deletions', () => {
+  const text = 'url,timecode,note\nhttps://www.youtube.com/watch?v=abcdefghijk,00:00:05,開場\nhttps://www.youtube.com/watch?v=abcdefghijk,8,第二段';
   const parsed = library.parse(text);
   assert.equal(parsed.errors.length, 0);
   assert.equal(parsed.videos.length, 1);
@@ -110,7 +110,7 @@ test('Legacy import combines repeated URLs and deduplicates content without resu
   assert.equal(updates[`markers:${videoKey}`].length, 2);
   assert.equal(updates[`markers:${videoKey}`][0].deletedAt, date);
   assert.ok(updates[`markers:${videoKey}`][1].id);
-  assert.ok(library.parse('MPY Timecode Marker v1\n▶ Missing URL').errors.length);
+  assert.ok(library.parse('url,timecode,note\ninvalid,5,開場').errors.length);
 });
 
 test('Full backup restores shared membership, dates, tombstones, settings and metadata-only videos', () => {
@@ -199,4 +199,40 @@ test('Removal plan uses selected Episode occurrences, skips backlog and other me
   assert.equal(groups.some(group => group.episodeId === 'c'), false);
   all['episode:b'].deletedAt = date;
   assert.deepEqual(plain(library.planRemovals(all, rows)).map(group => group.episodeId), ['a']);
+});
+
+test('CSV and TSV readers support quoted fields, reordered headers and empty notes', () => {
+  const csv = '\uFEFFnote,url,timecode,title\r\n"逗號,與""引號""\n換行",https://www.youtube.com/watch?v=abcdefghijk,1:08,A\r\n';
+  const parsed = library.parse(csv);
+  assert.equal(parsed.errors.length, 0);
+  assert.equal(parsed.videos[0].markers[0].time, 68);
+  assert.equal(parsed.videos[0].markers[0].note, '逗號,與"引號"\n換行');
+  const tsv = library.parse('網址\t時間\t說明\nhttps://live.tcc.gov.tw/watch?vdvno=123\t5\t');
+  assert.equal(tsv.errors.length, 0);
+  assert.equal(tsv.videos[0].markers[0].note, 'Marker');
+});
+
+test('Table errors block all writes and unsupported text is rejected', () => {
+  for (const text of [
+    'url,timecode,note\nhttps://www.youtube.com/watch?v=abcdefghijk,5,ok\ninvalid,8,no',
+    'url,timecode,note\nhttps://www.youtube.com/watch?v=abcdefghijk,invalid,no',
+    'url,timecode,note\nhttps://www.youtube.com/watch?v=abcdefghijk,5',
+    'url,timecode,note\n"unterminated',
+    'url,timecode,note', 'url,url,note', 'MPY Timecode Marker v1\nold text'
+  ]) {
+    const parsed = library.parse(text);
+    assert.ok(parsed.errors.length);
+    assert.throws(() => library.planImport(parsed, seed(), '', ''));
+  }
+});
+
+test('Trailing colon scopes an exact Episode name, without matching Marker text', () => {
+  assert.equal(library.matchEpisodeTerm('ep1', 'ep1:'), true);
+  assert.equal(library.matchEpisodeTerm('ep101', 'ep1:'), false);
+  assert.equal(library.matchEpisodeTerm('ep1', 'EP1：'), true);
+  assert.equal(library.matchEpisodeTerm('backlog', 'backlog:'), true);
+  assert.equal(library.matchEpisodeTerm('special', 'backlog:'), false);
+  assert.equal(library.matchEpisodeTerm('EP 102', '"ep 102":'), true);
+  assert.equal(library.matchEpisodeTerm('ep1 extra', 'ep1:'), false);
+  assert.equal(library.matchEpisodeTerm('ep1', '00:'), null);
 });

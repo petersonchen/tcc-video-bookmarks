@@ -64,9 +64,10 @@
 
     <details class="card">
       <summary><h2>匯入</h2></summary>
-      <p class="muted">貼上 v2 JSON 或舊版 v1 文字，也可選擇 JSON 檔案。先預覽，再確認匯入。</p>
-      <label class="file-label">選擇檔案 <input id="importFile" type="file" accept=".json,.txt,application/json,text/plain"></label>
-      <textarea id="importText" rows="12" placeholder="貼上匯出內容" aria-label="匯入內容"></textarea>
+      <p class="muted">貼上 v2 JSON、CSV 或從試算表複製的表格，也可選擇檔案。先預覽，再確認匯入。</p>
+      <p class="muted">表格第一列：url、timecode、note，可選填 title。Timecode 支援 HH:MM:SS、MM:SS 或秒數；每列是一筆 Marker。</p>
+      <label class="file-label">選擇檔案 <input id="importFile" type="file" accept=".json,.csv,.tsv,.txt,application/json,text/csv,text/tab-separated-values,text/plain"></label>
+      <textarea id="importText" rows="12" placeholder="貼上 v2 JSON 或表格資料" aria-label="匯入內容"></textarea>
       <div class="form-row" id="importTargetRow">
         <label>目標 <select id="importTarget"></select></label>
         <label id="importNameLabel" class="hidden">Episode 名稱 <input id="importName" maxlength="120"></label>
@@ -124,6 +125,7 @@
   <script src="../sites/tcc.js"></script>
   <script src="../sites/youtube.js"></script>
   <script src="../lib/video-key.js"></script>
+  <script src="../lib/import-formats.js"></script>
   <script src="../lib/library.js"></script>
   <script src="manage.js"></script>
 </body>

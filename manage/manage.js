@@ -112,12 +112,12 @@ function termMatches(haystack, term) {
   return true;
 }
 
-// The site a term names: the start of a site label ("you", "tc"), at least two
-// characters, or the alias "yt". Site labels are kept out of the fuzzy text, or
+// The site a term names: the start of a site label ("y", "t"),
+// or the alias "yt". Site labels are kept out of the fuzzy text, or
 // "tcc" would match any text with t, c, c in order.
 function siteForTerm(term) {
   if (term === "yt") return "youtube";
-  if (term.length < 2) return null;
+  if (!term.length) return null;
   return Object.keys(SITE_LABELS).find((site) => SITE_LABELS[site].toLowerCase().startsWith(term)) || null;
 }
 
@@ -129,7 +129,7 @@ async function refreshList() {
 }
 
 function searchTerms() {
-  return $("search").value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  return $("search").value.normalize("NFKC").trim().toLowerCase().match(/"[^"]+":|\S+/g) || [];
 }
 
 function matchesMarker(video, marker, episodeName, terms) {
@@ -158,7 +158,7 @@ function renderList() {
     const group = element("section", "episode-group");
     group.dataset.episodeId = episode.id;
     const heading = element("div", "episode-heading");
-    heading.append(element("h3", "episode-name", episode.name), element("span", "group-count", `${groupVideos.length} 支影片`));
+    heading.append(element("h3", "episode-name", `${episode.name}:`), element("span", "group-count", `${groupVideos.length} 支影片`));
     const actions = element("div", "group-actions");
     if (episode.id) {
       if (markerMode === "edit") {

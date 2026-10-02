@@ -57,8 +57,9 @@
 - Episode 依名稱自然排序，由大到小，例如 `ep12`、`ep11`、`ep2`、`ep1`；「最近」表示名稱排序，不是建立或修改日期。
 - 未搜尋時預設顯示最近 10 個 Episode，可在設定調整數量，0 表示全部。搜尋涵蓋全部 Episode 與 backlog，不受設定限制。
 - **backlog** 在 EDIT 顯示；CUE／PLAY 未搜尋時隱藏，搜尋時仍涵蓋 backlog。顯示時固定在最下面，不計入 Episode 顯示數量，僅顯示未加入任何 Episode 的影片，依 Marker 的最後修改時間由新到舊排列。尚未歸屬的新影片自動進入 backlog；未顯示的舊 Episode 仍算歸屬。
+- Episode 與 backlog 標題顯示結尾冒號，名稱本身不變。搜尋 `ep1:` 只符合 ep1；`ep1: 預算` 只在 ep1 搜尋「預算」，`backlog:` 只搜尋 backlog。名稱含空白時使用引號，例如 `"EP 102":`。
 - 搜尋帶編號的 Episode 名稱時採前綴比對：`ep10` 會符合 `ep101`、`ep102`、`ep103`，`ep102` 會符合 `ep102`、`ep1020`，不會符合 `ep101` 或 `ep103`；大小寫不影響比對，也支援 `EP 102` 名稱。
-- 搜尋可輸入 Episode 名稱、網站、影片標題、Marker 標題或 Timecode。以空白分隔多個詞時，每個詞都要符合。文字依字元順序比對，字元不必相連；只含數字與 `/`、`-`、`:` 的詞需完全相連。網站名稱的開頭（至少兩個字元，例如 `yout`、`tcc`）或 `yt` 會符合該網站。搜尋時不提供拖曳。
+- 搜尋可輸入 Episode 名稱、網站、影片標題、Marker 標題或 Timecode。以空白分隔多個詞時，每個詞都要符合。文字依字元順序比對，字元不必相連；只含數字與 `/`、`-`、`:` 的詞需完全相連。網站名稱的開頭（例如 `y`、`yout`、`t`、`tcc`）或 `yt` 會符合該網站。搜尋時不提供拖曳。
 - 影片庫、匯出、匯入、設定區塊可按標題收合；匯出、匯入、設定預設收合。Episode 本身不收合。
 
 ## 匯出與匯入
@@ -72,24 +73,35 @@
 匯入時貼上內容或選擇檔案，再按「預覽」：
 
 1. Episode 匯出預設建立新 Episode，名稱可修改，也可改為加入既有 Episode。名稱重複時需改名或選擇既有 Episode，不會只憑名稱自動合併。
-2. backlog 或舊版內容可指定 Episode，或選擇「不指定 Episode」。未指定不會移除既有歸屬，因此只有未歸屬影片出現在 backlog。
+2. backlog 或表格資料可指定 Episode，或選擇「不指定 Episode」。未指定不會移除既有歸屬，因此只有未歸屬影片出現在 backlog。
 3. 相同影片依 videoKey／網址合併；相同 Marker ID 不重複新增。ID 相同但內容不同時，預覽列出衝突，預設保留本機內容，也可選擇採用匯入內容，變更會影響所有 Episode。
 4. 一般匯入的時間與標題完全相同的 Marker 會略過；與本機已刪除項目重複的內容不會自動復活。完整備份保留不同 ID 的 Marker，包括內容相同的個別項目。
 5. 即使沒有新 Marker，也可透過匯入建立 Episode 或加入影片關係。
 6. 完整備份依 Episode ID 合併，相同 ID 保留本機名稱及原有影片順序，再接上新的影片；不同 ID 的同名 Episode 加上編號。備份會恢復顯示數量與 CUE／PLAY／EDIT 設定，保留本機其他資料。要完整重建備份的原始狀態，可匯入至空白的擴充功能資料庫。
 7. 若預覽後資料有變更，會更新預覽並要求再次確認，不會直接套用過時資料。
 
-仍支援原本的 **MPY Timecode Marker v1** 純文字格式。v1 沒有 Marker ID 和日期，新的 Marker 以匯入當下作為建立與修改時間；時間與標題完全相同的項目略過，不會重新加入已刪除項目。
+### 從試算表匯入
 
-```text
-MPY Timecode Marker v1
-匯出：2026-09-21 ~ 2026-09-22，1 支影片，2 個 Marker
+支援 CSV、TSV 檔案，也可直接貼上從 Google Sheets 複製的儲存格。第一列必須是欄位名稱，每列代表一筆 Marker；欄位順序不限。
 
-▶ 影片標題
-https://www.youtube.com/watch?v=dQw4w9WgXcQ
-00:01:08 開場
-00:02:20 第二段
+| 欄位 | 必填 | 內容 |
+| --- | --- | --- |
+| `url` | 是 | 支援網站的影片網址 |
+| `timecode` | 是 | `HH:MM:SS`、`MM:SS` 或秒數 |
+| `note` | 是 | Marker 說明，空白時使用「Marker」 |
+| `title` | 否 | 影片標題；未提供時使用影片識別，本機已有標題則保留 |
+
+欄位名稱也接受「網址」「時間」「說明」「影片標題」；`description` 可代替 `note`。CSV 欄位含逗號、換行或雙引號時，使用標準 CSV 引號格式。
+
+```csv
+url,timecode,note,title
+https://www.youtube.com/watch?v=abcdefghijk,01:08,開場,影片 A
+https://www.youtube.com/watch?v=abcdefghijk,320,交通政策,影片 A
 ```
+
+同一影片的列會合併；時間與說明完全相同的 Marker 不重複新增，也不會恢復本機已刪除的相同內容。新 Marker 的 ID、建立與修改時間在確認匯入時產生。匯入前可選擇建立 Episode、加入既有 Episode，或不指定 Episode。任何一列格式錯誤都會阻止整批匯入，預覽會顯示錯誤位置。
+
+不支援直接讀取 Google Sheets 連結或 `.xlsx` 檔案，請複製表格或匯出 CSV／TSV。
 
 ## 開發驗證
 
@@ -132,7 +144,8 @@ node tests/manage.browser.cjs
 - `manage/manage.js`：管理頁，Marker 清單、搜尋、編輯與匯出、匯入
 - `lib/buttons.css`：管理頁與 popup 共用的按鈕尺寸、配色及互動狀態
 - `lib/markers.js`：popup 與管理頁共用的 Timecode 格式與 storage 寫入鎖
-- `lib/library.js`：Episode 歸屬、自然排序、backlog 與 v2／v1 匯入匯出
+- `lib/import-formats.js`：格式解析入口，將 v2 JSON、CSV／TSV 轉為共用匯入資料；新增格式時擴充 reader
+- `lib/library.js`：Episode 歸屬、自然排序、backlog 與共用匯入合併、v2 匯出
 - `lib/video-key.js`：由影片網址決定 Marker 的儲存 key，content script 與管理頁共用
 - `sites/tcc.js`：臺北市議會網站判斷，以及 Video.js 的 CUE / PLAY 控制
 - `sites/youtube.js`：YouTube 網站判斷，以及 YouTube player API 的 CUE / PLAY 控制

@@ -57,7 +57,7 @@ const root = require('node:path').resolve(__dirname, '..');
   });
   await page.goto('http://localhost:8765/manage/manage.html');
   await page.waitForFunction(() => document.querySelectorAll('.episode-name').length === 3);
-  assert.deepEqual(await page.locator('.episode-name').allTextContents(), ['ep11', 'ep2', 'backlog']);
+  assert.deepEqual(await page.locator('#list .episode-name').allTextContents(), ['ep11:', 'ep2:', 'backlog:']);
   assert.equal(await page.locator('.marker-preview').count(), await page.locator('.marker-editable').count());
   await page.evaluate(() => {
     window.__originalSeek = seekMarker;
@@ -66,6 +66,14 @@ const root = require('node:path').resolve(__dirname, '..');
   await page.getByRole('button', { name: '從此 Marker 播放', exact: true }).first().click();
   assert.deepEqual(await page.evaluate(() => window.__previewCall), { videoKey: 'youtube:abcdefghijk', time: 68, play: true });
   await page.evaluate(() => { seekMarker = window.__originalSeek; });
+  await page.locator('#search').fill('ep2: t');
+  assert.deepEqual(await page.locator('#list .episode-name').allTextContents(), ['ep2:']);
+  assert.equal(await page.locator('#list .video').count(), 1);
+  await page.locator('#search').fill('ep11: y');
+  assert.equal(await page.locator('#list .video').count(), 1);
+  await page.locator('#search').fill('ep11: t');
+  assert.equal(await page.locator('#list .video').count(), 0);
+  await page.locator('#search').fill('');
   const migrated = await page.evaluate(() => window.__db);
   assert.equal(migrated['videos:youtube:abcdefghijk'].pickedAt, undefined);
   assert.equal(migrated['markers:youtube:abcdefghijk'][0].updatedAt, '2026-09-20T00:00:00.000Z');
@@ -102,14 +110,14 @@ const root = require('node:path').resolve(__dirname, '..');
   assert.equal(await page.locator('.group-actions').getByRole('button', { name: '改名', exact: true }).count(), 2);
   assert.equal(await page.locator('.group-actions').getByRole('button', { name: '刪除', exact: true }).count(), 2);
   await page.locator('#search').fill('ep1');
-  await page.waitForFunction(() => [...document.querySelectorAll('.episode-name')].some(node => node.textContent === 'ep1'));
+  await page.waitForFunction(() => [...document.querySelectorAll('.episode-name')].some(node => node.textContent === 'ep1:'));
   assert.equal(await page.locator('section[data-episode-id="1"] .video').count(), 1);
   assert.equal(await page.locator('.drag-handle').count(), 0);
   await page.locator('#search').fill('');
   await page.getByRole('button', { name: '＋ 新增 Episode' }).click();
   await page.locator('#episodeName').fill('ep12');
   await page.locator('#episodeSave').click();
-  await page.waitForFunction(() => document.querySelector('.episode-name')?.textContent === 'ep12');
+  await page.waitForFunction(() => document.querySelector('.episode-name')?.textContent === 'ep12:');
   const ep12 = await page.evaluate(() => Library.episodes(window.__db).find(episode => episode.name === 'ep12').id);
   assert.equal(await page.getByRole('button', { name: '加入影片', exact: true }).count(), 0);
   await page.locator('#search').fill('交通');
@@ -177,7 +185,7 @@ const root = require('node:path').resolve(__dirname, '..');
   await page.locator('#importName').fill('ep13');
   await page.locator('#importPreview').click();
   await page.locator('#importApply').click();
-  await page.waitForFunction(() => document.querySelector('.episode-name')?.textContent === 'ep13');
+  await page.waitForFunction(() => document.querySelector('.episode-name')?.textContent === 'ep13:');
   assert.equal(await page.evaluate(() => window.__db['markers:youtube:abcdefghijk'].length), 2);
   // Delete and restore an Episode while preserving shared data.
   const ep13 = await page.evaluate(() => Library.episodes(window.__db).find(episode => episode.name === 'ep13').id);
@@ -193,7 +201,7 @@ const root = require('node:path').resolve(__dirname, '..');
   await page.waitForFunction(() => document.getElementById('episodeDialogError').textContent.includes('同名'));
   await page.locator('#episodeName').fill('ep14');
   await page.locator('#episodeSave').click();
-  await page.waitForFunction(() => document.querySelector('.episode-name')?.textContent === 'ep14');
+  await page.waitForFunction(() => document.querySelector('.episode-name')?.textContent === 'ep14:');
   await page.locator('#exportPanel > summary').click();
   await page.locator('details').filter({ has: page.getByRole('heading', { name: '匯入', exact: true }) }).locator('summary').click();
   // Sticky controls stay visible even while scrolling to settings.
@@ -221,6 +229,20 @@ const root = require('node:path').resolve(__dirname, '..');
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   const mobileModes = await page.locator('#modes').boundingBox();
   assert.ok(mobileModes.y >= 0 && mobileModes.y + mobileModes.height <= 844);
+  // Spreadsheet paste follows the same preview/confirmation pipeline as JSON.
+  await page.setViewportSize({ width: 1280, height: 1000 });
+  await page.evaluate(() => { document.getElementById('importText').closest('details').open = true; });
+  await page.locator('#importText').fill('url\ttimecode\tnote\ttitle\nhttps://live.tcc.gov.tw/watch?vdvno=999\t1:08\t試算表內容\t表格影片');
+  await page.locator('#importTarget').selectOption(ep12);
+  await page.locator('#importPreview').click();
+  assert.equal(await page.locator('#importApply').isEnabled(), true);
+  await page.locator('#importApply').click();
+  await page.waitForFunction(() => window.__db['markers:tcc:999']?.[0]?.time === 68);
+  assert.equal(await page.evaluate(() => window.__db['markers:tcc:999'][0].note), '試算表內容');
+  assert.ok(await page.evaluate(id => window.__db[`episode:${id}`].videoKeys.includes('tcc:999'), ep12));
+  await page.locator('#importText').fill('url,timecode,note\ninvalid,5,錯誤');
+  await page.locator('#importPreview').click();
+  assert.equal(await page.locator('#importApply').isEnabled(), false);
   // A shared backend exercises actual Web Locks between two manage pages and popup.
   const sharedDb = {
     libraryVersion: 2, settings: { recentEpisodes: 0 }, markerMode: 'edit',
@@ -305,9 +327,13 @@ const root = require('node:path').resolve(__dirname, '..');
   });
   await first.waitForSelector('section[data-episode-id="search-102"]');
   await first.locator('#search').fill('ep102');
-  assert.deepEqual(await first.locator('.episode-name').allTextContents(), ['ep1020', 'ep102']);
+  assert.deepEqual(await first.locator('#list .episode-name').allTextContents(), ['ep1020:', 'ep102:']);
+  await first.locator('#search').fill('ep102:');
+  assert.deepEqual(await first.locator('#list .episode-name').allTextContents(), ['ep102:']);
+  await first.locator('#search').fill('ep102: 後续');
+  assert.equal(await first.locator('.video').count(), 0);
   await first.locator('#search').fill('ep10');
-  assert.deepEqual(await first.locator('.episode-name').allTextContents(), ['ep1020', 'ep103', 'ep102', 'ep101']);
+  assert.deepEqual(await first.locator('#list .episode-name').allTextContents(), ['ep1020:', 'ep103:', 'ep102:', 'ep101:']);
   await first.locator('#search').fill('');
   // Filtered backlog batches include only matching videos; changing search clears selection.
   await first.evaluate(async () => {
@@ -372,6 +398,10 @@ const root = require('node:path').resolve(__dirname, '..');
   assert.deepEqual([...restoredOrder].sort(), [...beforeRemoval].sort());
   assert.equal(sharedDb['markers:tcc:900'][0].note, 'later edit');
   // Identical videos in different Episodes have independent selection and removal.
+  await first.locator('#search').fill('ep102:');
+  assert.deepEqual(await first.locator('#list .episode-name').allTextContents(), ['ep102:']);
+  await first.locator('#search').fill('ep102: 後续');
+  assert.equal(await first.locator('.video').count(), 0);
   await first.locator('#search').fill('ep10');
   await first.locator('section[data-episode-id="search-101"] .video-select').check();
   assert.equal(await first.locator('section[data-episode-id="search-102"] .video-select').isChecked(), false);
