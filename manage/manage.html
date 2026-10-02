@@ -91,6 +91,8 @@
       <p class="muted">依 Episode 名稱自然排序，由大到小（ep11、ep2、ep1）。0 表示全部顯示。搜尋涵蓋全部 Episode 與 backlog，不受此設定限制；backlog 不計入數量。</p>
       <label class="setting">CUE／PLAY 提前 <input id="cueLead" type="number" min="0" max="60" step="1"> 秒開始</label>
       <p class="muted">從 Marker 時間往前提早開始，0 表示從 Marker 時間開始。popup 與管理頁的 CUE／PLAY 都適用；「跳到時間」不受影響。</p>
+      <label class="setting"><input id="reuseTab" type="checkbox"> CUE／PLAY 固定使用同一個分頁</label>
+      <p class="muted">開啟時，管理頁的 CUE／PLAY 都在同一個分頁播放，點選其他影片會在該分頁換成新影片。關閉時，影片已開啟就切換到該分頁，否則開新分頁。</p>
     </details>
   </main>
   <dialog id="episodeDialog" aria-labelledby="episodeDialogTitle">

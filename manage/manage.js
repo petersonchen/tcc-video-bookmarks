@@ -1,6 +1,6 @@
 // Settings, Marker mode, storage sync, and page start-up. Loaded last.
 
-const DEFAULT_SETTINGS = { recentEpisodes: 10, cueLead: 0 };
+const DEFAULT_SETTINGS = { recentEpisodes: 10, cueLead: 0, reuseTab: true };
 let settings = { ...DEFAULT_SETTINGS };
 
 async function updateSettings(changes) {
@@ -16,6 +16,8 @@ async function loadSettings() {
   if (!validCueLead(settings.cueLead)) settings.cueLead = DEFAULT_SETTINGS.cueLead;
   $("recentEpisodes").value = settings.recentEpisodes;
   $("cueLead").value = settings.cueLead;
+  if (typeof settings.reuseTab !== "boolean") settings.reuseTab = DEFAULT_SETTINGS.reuseTab;
+  $("reuseTab").checked = settings.reuseTab;
 }
 
 $("recentEpisodes").addEventListener("change", () => run(async () => {
@@ -35,6 +37,8 @@ $("cueLead").addEventListener("change", () => run(async () => {
   }
   await updateSettings({ cueLead: lead });
 }));
+
+$("reuseTab").addEventListener("change", () => run(() => updateSettings({ reuseTab: $("reuseTab").checked })));
 
 // What clicking a marker does: "cue", "play", or "edit". Stored apart from the
 // settings section since it changes often.

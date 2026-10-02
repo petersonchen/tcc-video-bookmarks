@@ -34,6 +34,7 @@ details[open] > summary { margin-bottom: 8px; }
 #listMore { display: block; margin: 12px auto 0; }
 .setting { display: block; margin-bottom: 6px; font-size: 14px; }
 .setting input { width: 72px; margin: 0 4px; text-align: right; }
+.setting input[type="checkbox"] { width: auto; margin: 0 6px 0 0; }
 
 .marker-toolbar { position: sticky; top: 0; z-index: 10; padding: 16px; margin-bottom: 16px; border-radius: 8px; background: #fff; box-shadow: 0 2px 8px rgb(15 23 42 / 8%); }
 .list-tools { display: flex; gap: 8px; }

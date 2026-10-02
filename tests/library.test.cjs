@@ -117,7 +117,7 @@ test('Full backup restores shared membership, dates, tombstones, settings and me
   const all = seed();
   all[`markers:${videoKey}`].push(marker('deleted', { deletedAt: date }));
   all['videos:tcc:empty'] = { title: 'metadata only' };
-  all.settings = { recentEpisodes: 3, lastEpisodeId: "b", cueLead: 3 };
+  all.settings = { recentEpisodes: 3, lastEpisodeId: "b", cueLead: 3, reuseTab: false };
   all.markerMode = 'edit';
   const parsed = exported(all, '', true);
   const restored = library.importUpdates(library.planImport(parsed, {}, '', ''), {});
@@ -130,6 +130,7 @@ test('Full backup restores shared membership, dates, tombstones, settings and me
   assert.equal(restored.settings.recentEpisodes, 3);
   assert.equal(restored.settings.lastEpisodeId, "b");
   assert.equal(restored.settings.cueLead, 3);
+  assert.equal(restored.settings.reuseTab, false);
   assert.equal(restored.markerMode, 'edit');
   const merged = library.importUpdates(library.planImport(parsed, restored, '', ''), restored);
   assert.equal(library.episodes(merged).length, 3);
