@@ -89,6 +89,8 @@
       <summary><h2>設定</h2></summary>
       <label class="setting">未搜尋時顯示最近 <input id="recentEpisodes" type="number" min="0" step="1"> 個 Episode</label>
       <p class="muted">依 Episode 名稱自然排序，由大到小（ep11、ep2、ep1）。0 表示全部顯示。搜尋涵蓋全部 Episode 與 backlog，不受此設定限制；backlog 不計入數量。</p>
+      <label class="setting">CUE／PLAY 提前 <input id="cueLead" type="number" min="0" max="60" step="1"> 秒開始</label>
+      <p class="muted">從 Marker 時間往前提早開始，0 表示從 Marker 時間開始。popup 與管理頁的 CUE／PLAY 都適用；「跳到時間」不受影響。</p>
     </details>
   </main>
   <dialog id="episodeDialog" aria-labelledby="episodeDialogTitle">

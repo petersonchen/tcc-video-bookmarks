@@ -1,6 +1,6 @@
 // Settings, Marker mode, storage sync, and page start-up. Loaded last.
 
-const DEFAULT_SETTINGS = { recentEpisodes: 10 };
+const DEFAULT_SETTINGS = { recentEpisodes: 10, cueLead: 0 };
 let settings = { ...DEFAULT_SETTINGS };
 
 async function updateSettings(changes) {
@@ -13,7 +13,9 @@ async function updateSettings(changes) {
 async function loadSettings() {
   const stored = (await chrome.storage.local.get("settings")).settings;
   settings = { ...DEFAULT_SETTINGS, ...stored };
+  if (!validCueLead(settings.cueLead)) settings.cueLead = DEFAULT_SETTINGS.cueLead;
   $("recentEpisodes").value = settings.recentEpisodes;
+  $("cueLead").value = settings.cueLead;
 }
 
 $("recentEpisodes").addEventListener("change", () => run(async () => {
@@ -23,6 +25,15 @@ $("recentEpisodes").addEventListener("change", () => run(async () => {
     return;
   }
   await updateSettings({ recentEpisodes: count });
+}));
+
+$("cueLead").addEventListener("change", () => run(async () => {
+  const lead = Number($("cueLead").value);
+  if (!validCueLead(lead)) {
+    $("cueLead").value = settings.cueLead;
+    return;
+  }
+  await updateSettings({ cueLead: lead });
 }));
 
 // What clicking a marker does: "cue", "play", or "edit". Stored apart from the

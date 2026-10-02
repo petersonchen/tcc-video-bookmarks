@@ -43,8 +43,9 @@ async function seekMarker(video, marker, play) {
     await chrome.windows.update(tab.windowId, { focused: true });
 
     if (!(await waitForPlayer(adapter, tab.id))) throw new Error("影片播放器載入逾時");
-    if (play) await adapter.play(tab.id, marker.time);
-    else await adapter.cue(tab.id, marker.time);
+    const target = seekTarget(marker.time, settings.cueLead);
+    if (play) await adapter.play(tab.id, target);
+    else await adapter.cue(tab.id, target);
   } catch (error) {
     showToast(`無法${play ? "播放" : "CUE"}「${marker.note || DEFAULT_MARKER_NOTE}」：${error.message}`);
   }

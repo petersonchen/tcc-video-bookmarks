@@ -12,6 +12,8 @@
 - **CUE**：跳至指定時間並暫停
 - **PLAY**：跳至指定時間並開始播放
 - 手動輸入 `HH:MM:SS`、`MM:SS` 或秒數後直接 PLAY
+- 鍵盤快捷鍵：不開 popup，直接將目前位置儲存為 Marker
+- CUE／PLAY 可設定提前秒數，從 Marker 時間之前開始
 - Marker 依不同影片分開保存
 - 重新整理網頁後仍保留 Marker
 - Marker 僅儲存在使用者瀏覽器本機
@@ -26,6 +28,11 @@
 4. 需要使用片段時，按 **CUE** 預備，或按 **PLAY** 直接跳至該時間播放。
 5. 已建立的 Marker 可直接修改 Timecode 與標題。
 6. 也可以在「跳到時間」輸入例如 `01:23:45`，再按 **PLAY**。
+7. CUE 或 PLAY 失敗時，popup 保持開啟並顯示原因。
+
+### 鍵盤快捷鍵
+
+在影片頁按 `Alt+Shift+M`（macOS 為 `Option+Shift+M`），會將目前位置儲存為 Marker，說明為「Marker HH:MM:SS」，之後可在 popup 或管理頁修改。工具列圖示顯示 ✓ 表示已儲存，顯示 ! 表示失敗，滑鼠移到圖示上可看到原因。快捷鍵可在 `chrome://extensions/shortcuts`（Edge 為 `edge://extensions/shortcuts`）修改。
 
 ## 管理頁
 
@@ -36,6 +43,7 @@
 「模式」可選 **CUE**、**PLAY**、**EDIT**，預設 PLAY，會記住選擇。
 
 - **CUE／PLAY**：點選整筆 Marker，切換到影片分頁並跳至該時間；CUE 暫停，PLAY 播放。未開啟的影片會開新分頁，等播放器載入後跳轉；YouTube 會等廣告結束。
+- 設定中的「CUE／PLAY 提前秒數」可設 0 到 60 秒，預設 0。popup 與管理頁的 CUE、PLAY 及 EDIT 的 ▶ 都會從 Marker 時間往前提早開始；「跳到時間」不受影響。完整備份會保存此設定。
 - **EDIT**：直接修改 Timecode 或標題，更新 Marker 的最後修改時間，保留建立時間。Timecode 前的 ▶ 可從該時間播放，方便確認內容。
 - EDIT 模式滑鼠移到 Marker，或以鍵盤編輯時，整列會凸顯，該列的 × 變紅，方便辨識刪除目標。按 × 刪除 Marker，可在 8 秒內復原最近一次刪除。
 - 搜尋與模式控制列固定在畫面上方，影片庫標題列固定在搜尋列下方。桌面切換模式時標題列等高；影片與 Marker 預留控制項欄位並保持列高，讓影片標題、Timecode 與 Marker 標題的位置一致。窄視窗的操作列會換行。
@@ -150,6 +158,7 @@ node tests/manage.browser.cjs
 ### Site Adapter 架構
 
 - `popup/popup.js`：共用 Marker UI、儲存與操作流程
+- `background.js`：鍵盤快捷鍵，不開 popup 直接儲存 Marker
 - `manage/common.js`：管理頁共用的 helper、toast 與 storage 寫入
 - `manage/list.js`：管理頁的 Episode 清單、搜尋、拖拉與 Marker 編輯
 - `manage/dialogs.js`：選取工具列，以及 Episode、加入、移除對話框
@@ -158,7 +167,7 @@ node tests/manage.browser.cjs
 - `manage/manage.js`：設定、Marker 模式、storage 同步與頁面初始化
 - `lib/buttons.css`：管理頁與 popup 共用的按鈕尺寸、配色及互動狀態
 - `lib/timecode.js`：Timecode 格式與解析，content script、popup 與管理頁共用
-- `lib/markers.js`：popup 與管理頁共用的 storage key、寫入鎖與 Marker 修改
+- `lib/markers.js`：popup、管理頁與 `background.js` 共用的 storage key、寫入鎖、Marker 儲存與修改，以及 CUE 提前秒數
 - `lib/marker-fields.js`：popup 與管理頁共用的 Marker 時間、說明編輯欄位
 - `lib/import-formats.js`：格式解析入口，將 v2 JSON、CSV／TSV 轉為共用匯入資料；新增格式時擴充 reader
 - `lib/library.js`：Episode 歸屬、自然排序、backlog 與共用匯入合併、v2 匯出

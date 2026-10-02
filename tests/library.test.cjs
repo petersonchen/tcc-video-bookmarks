@@ -117,7 +117,7 @@ test('Full backup restores shared membership, dates, tombstones, settings and me
   const all = seed();
   all[`markers:${videoKey}`].push(marker('deleted', { deletedAt: date }));
   all['videos:tcc:empty'] = { title: 'metadata only' };
-  all.settings = { recentEpisodes: 3, lastEpisodeId: "b" };
+  all.settings = { recentEpisodes: 3, lastEpisodeId: "b", cueLead: 3 };
   all.markerMode = 'edit';
   const parsed = exported(all, '', true);
   const restored = library.importUpdates(library.planImport(parsed, {}, '', ''), {});
@@ -129,6 +129,7 @@ test('Full backup restores shared membership, dates, tombstones, settings and me
   assert.equal(restored['videos:tcc:empty'].title, 'metadata only');
   assert.equal(restored.settings.recentEpisodes, 3);
   assert.equal(restored.settings.lastEpisodeId, "b");
+  assert.equal(restored.settings.cueLead, 3);
   assert.equal(restored.markerMode, 'edit');
   const merged = library.importUpdates(library.planImport(parsed, restored, '', ''), restored);
   assert.equal(library.episodes(merged).length, 3);
@@ -278,4 +279,15 @@ test('IVOD keys share one video across bandwidths and keep Clip and Full apart',
   const parsed = library.parse('url,timecode,note\nhttps://ivod.ly.gov.tw/Play/Full/300K/17330,1:00,開場');
   assert.equal(parsed.errors.length, 0);
   assert.equal(parsed.videos[0].site, 'ivod');
+});
+
+test('CUE lead accepts whole seconds up to 60 and never seeks before zero', () => {
+  const valid = vm.runInContext('validCueLead', context);
+  const target = vm.runInContext('seekTarget', context);
+  for (const value of [0, 3, 60]) assert.equal(valid(value), true, value);
+  for (const value of [-1, 1.5, 61, '3', undefined]) assert.equal(valid(value), false, value);
+  assert.equal(target(10, 3), 7);
+  assert.equal(target(2, 3), 0);
+  const backup = library.exportData({ ...seed(), settings: { cueLead: 99 } }, null, true);
+  assert.equal(library.parse(JSON.stringify(backup)).settings.cueLead, undefined);
 });

@@ -2,6 +2,7 @@ let activeTab;
 let state;
 let markers = [];
 let siteAdapter;
+let cueLead = 0;
 
 const $ = (id) => document.getElementById(id);
 
@@ -45,26 +46,12 @@ function render() {
     const cue = document.createElement("button");
     cue.className = "cue";
     cue.textContent = "CUE";
-    cue.addEventListener("click", async () => {
-      try {
-        await siteAdapter.cue(activeTab.id, marker.time);
-      } catch (error) {
-        console.error("[MPY Timecode Marker] CUE failed", error);
-      }
-      window.close();
-    });
+    cue.addEventListener("click", () => seek(marker, false));
 
     const play = document.createElement("button");
     play.className = "play";
     play.textContent = "PLAY";
-    play.addEventListener("click", async () => {
-      try {
-        await siteAdapter.play(activeTab.id, marker.time);
-      } catch (error) {
-        console.error("[MPY Timecode Marker] PLAY failed", error);
-      }
-      window.close();
-    });
+    play.addEventListener("click", () => seek(marker, true));
 
     const remove = document.createElement("button");
     remove.className = "delete";
@@ -78,6 +65,18 @@ function render() {
     row.append(time, note, cue, play, remove);
     list.append(row);
   });
+}
+
+// Closes the popup only after the player accepted the seek, so a failure stays visible.
+async function seek(marker, play) {
+  try {
+    const target = seekTarget(marker.time, cueLead);
+    if (play) await siteAdapter.play(activeTab.id, target);
+    else await siteAdapter.cue(activeTab.id, target);
+    window.close();
+  } catch (error) {
+    showError(`無法${play ? "PLAY" : "CUE"}「${marker.note || DEFAULT_MARKER_NOTE}」：${error.message}`);
+  }
 }
 
 function showError(text) {
@@ -111,6 +110,7 @@ async function init() {
   $("currentTime").textContent = state.formattedTime;
   $("note").value = `Marker ${state.formattedTime}`;
   $("controls").classList.remove("hidden");
+  cueLead = await loadCueLead();
   await saveVideoMeta();
   await loadMarkers();
   $("note").focus();
@@ -148,17 +148,8 @@ $("save").addEventListener("click", async () => {
     const latest = await siteAdapter.getState(activeTab.id);
     if (!latest?.ok) throw new Error(latest?.error || "無法取得影片時間");
 
-    const note = $("note").value.trim() || `Marker ${latest.formattedTime}`;
     state = latest;
-    await withStorageLock(async () => {
-      const key = markersKey(state.videoKey);
-      const metaKey = videoMetaKey(state.videoKey);
-      const stored = await chrome.storage.local.get([key, metaKey]);
-      await chrome.storage.local.set({
-        [key]: [...(stored[key] || []), newMarker(latest.currentTime, note)],
-        [metaKey]: { ...stored[metaKey], site: state.site, title: state.pageTitle, pageUrl: state.pageUrl }
-      });
-    });
+    await saveMarker(latest, $("note").value.trim() || `Marker ${latest.formattedTime}`);
     $("currentTime").textContent = latest.formattedTime;
     $("note").value = "";
     await loadMarkers();
