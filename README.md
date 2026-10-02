@@ -141,9 +141,15 @@ node tests/manage.browser.cjs
 ### Site Adapter 架構
 
 - `popup/popup.js`：共用 Marker UI、儲存與操作流程
-- `manage/manage.js`：管理頁，Marker 清單、搜尋、編輯與匯出、匯入
+- `manage/common.js`：管理頁共用的 helper、toast 與 storage 寫入
+- `manage/list.js`：管理頁的 Episode 清單、搜尋、拖拉與 Marker 編輯
+- `manage/dialogs.js`：選取工具列，以及 Episode、加入、移除對話框
+- `manage/seek.js`：從管理頁開啟或切換影片分頁，再執行 CUE / PLAY
+- `manage/transfer.js`：匯出與匯入
+- `manage/manage.js`：設定、Marker 模式、storage 同步與頁面初始化
 - `lib/buttons.css`：管理頁與 popup 共用的按鈕尺寸、配色及互動狀態
-- `lib/markers.js`：popup 與管理頁共用的 Timecode 格式與 storage 寫入鎖
+- `lib/timecode.js`：Timecode 格式與解析，content script、popup 與管理頁共用
+- `lib/markers.js`：popup 與管理頁共用的 storage key 與寫入鎖
 - `lib/import-formats.js`：格式解析入口，將 v2 JSON、CSV／TSV 轉為共用匯入資料；新增格式時擴充 reader
 - `lib/library.js`：Episode 歸屬、自然排序、backlog 與共用匯入合併、v2 匯出
 - `lib/video-key.js`：由影片網址決定 Marker 的儲存 key，content script 與管理頁共用
@@ -151,7 +157,7 @@ node tests/manage.browser.cjs
 - `sites/youtube.js`：YouTube 網站判斷，以及 YouTube player API 的 CUE / PLAY 控制
 - `content/video-controller.js`：從 TCC 與 YouTube 頁面取得影片狀態與穩定的影片識別資訊
 
-新增其他網站時，可依 `sites/tcc.js` 的介面實作 `matches()`、`getState()`、`isReady()`、`cue()` 與 `play()`。
+新增其他網站時，可依 `sites/tcc.js` 的介面設定 `urlPattern`，實作 `matches()`、`getState()`、`isReady()`、`cue()` 與 `play()`。
 
 ## 支援瀏覽器
 
