@@ -31,14 +31,6 @@
     };
   }
 
-  function formatTime(totalSeconds) {
-    const seconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return [h, m, s].map((n) => String(n).padStart(2, "0")).join(":");
-  }
-
   function videoState() {
     if (site === "youtube") {
       const videoId = youtubeVideoId(new URL(location.href));

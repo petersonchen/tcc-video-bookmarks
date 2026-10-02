@@ -42,7 +42,7 @@
         <button id="newEpisode" class="small-button hidden" type="button">＋ 新增 Episode</button>
       </summary>
       <div id="list"></div>
-      <div id="listEmpty" class="empty hidden"></div>
+      <div id="listEmpty" class="empty hidden">沒有符合的 Episode 或 Marker</div>
       <div id="listHint" class="hint hidden"></div>
     </details>
 
@@ -121,6 +121,7 @@
     </form>
   </dialog>
   <div id="toast" role="status" class="toast hidden"><span id="toastText"></span><button id="toastAction" class="hidden"></button></div>
+  <script src="../lib/timecode.js"></script>
   <script src="../lib/markers.js"></script>
   <script src="../sites/tcc.js"></script>
   <script src="../sites/youtube.js"></script>

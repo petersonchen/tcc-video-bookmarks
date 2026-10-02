@@ -67,10 +67,10 @@ function render() {
 
     const note = document.createElement("input");
     note.className = "marker-edit marker-note";
-    note.value = marker.note || "Marker";
+    note.value = marker.note || DEFAULT_MARKER_NOTE;
     note.title = "編輯標題";
     note.addEventListener("change", async () => {
-      try { await updateStoredMarker(marker.id, { note: note.value.trim() || "Marker", updatedAt: new Date().toISOString() }); }
+      try { await updateStoredMarker(marker.id, { note: note.value.trim() || DEFAULT_MARKER_NOTE, updatedAt: new Date().toISOString() }); }
       catch (error) { showError(error.message); }
     });
 

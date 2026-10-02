@@ -3,6 +3,8 @@ window.SiteAdapters = window.SiteAdapters || [];
 window.SiteAdapters.push({
   id: "youtube",
   name: "YouTube",
+  // Keep in sync with host_permissions and content_scripts in manifest.json.
+  urlPattern: "https://www.youtube.com/*",
 
   matches(url) {
     return typeof url === "string" && url.startsWith("https://www.youtube.com/");

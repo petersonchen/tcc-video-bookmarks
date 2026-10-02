@@ -31,6 +31,13 @@ async function changeMarker(videoKey, id, changes, expectedDeletedAt) {
 const DEFAULT_SETTINGS = { recentEpisodes: 10 };
 let settings = { ...DEFAULT_SETTINGS };
 
+async function updateSettings(changes) {
+  await withStorageLock(async () => {
+    const stored = (await chrome.storage.local.get("settings")).settings || {};
+    await chrome.storage.local.set({ settings: { ...stored, ...changes } });
+  });
+}
+
 async function loadSettings() {
   const stored = (await chrome.storage.local.get("settings")).settings;
   settings = { ...DEFAULT_SETTINGS, ...stored };
@@ -43,10 +50,7 @@ $("recentEpisodes").addEventListener("change", () => run(async () => {
     $("recentEpisodes").value = settings.recentEpisodes;
     return;
   }
-  await withStorageLock(async () => {
-    const stored = (await chrome.storage.local.get("settings")).settings || {};
-    await chrome.storage.local.set({ settings: { ...stored, recentEpisodes: count } });
-  });
+  await updateSettings({ recentEpisodes: count });
 }));
 
 // ---- Marker list ----
@@ -180,7 +184,6 @@ function renderList() {
     if (!groupVideos.length) group.append(element("div", "empty", episode.id ? "尚未加入影片" : "沒有尚未加入 Episode 的影片"));
     list.append(group);
   });
-  $("listEmpty").textContent = "沒有符合的 Episode 或 Marker";
   $("listEmpty").classList.toggle("hidden", list.children.length > 0);
   const hidden = terms.length ? 0 : allEpisodes.length - shown.length;
   $("listHint").textContent = hidden ? `另有 ${hidden} 個 Episode 未顯示。可用搜尋找到，或在設定增加顯示數量。` : "";
@@ -307,7 +310,7 @@ function renderMarker(video, marker) {
   const play = markerMode === "play";
   const row = element("button", "marker marker-action");
   row.title = play ? "跳至此時間並播放" : "跳至此時間並暫停";
-  row.append(element("span", "marker-time", formatTime(marker.time)), element("span", "", marker.note || "Marker"));
+  row.append(element("span", "marker-time", formatTime(marker.time)), element("span", "", marker.note || DEFAULT_MARKER_NOTE));
   row.addEventListener("click", () => seekMarker(video, marker, play));
   return row;
 }
@@ -328,11 +331,11 @@ function renderEditableMarker(video, marker) {
   }));
 
   const note = element("input", "marker-edit marker-note");
-  note.value = marker.note || "Marker";
+  note.value = marker.note || DEFAULT_MARKER_NOTE;
   note.title = "編輯標題";
   note.addEventListener("change", () => run(async () => {
     await changeMarker(video.videoKey, marker.id, {
-      note: note.value.trim() || "Marker",
+      note: note.value.trim() || DEFAULT_MARKER_NOTE,
       updatedAt: new Date().toISOString()
     });
   }));
@@ -400,8 +403,8 @@ async function addVideos(id, keys) {
     return { ...episode, videoKeys: [...new Set([...episode.videoKeys, ...keys])] };
   });
   const added = keys.filter((key) => !before.videoKeys.includes(key));
-  showToast(added.length ? `已將 ${added.length} 支影片加入 ${before.name}` : `影片已在 ${before.name} 中`, added.length ? "復原" : "", async () => run(() =>
-    updateEpisode(id, (episode) => ({ ...episode, videoKeys: episode.videoKeys.filter((key) => !added.includes(key)) }))));
+  showToast(added.length ? `已將 ${added.length} 支影片加入 ${before.name}` : `影片已在 ${before.name} 中`, added.length ? "復原" : "", () =>
+    updateEpisode(id, (episode) => ({ ...episode, videoKeys: episode.videoKeys.filter((key) => !added.includes(key)) })));
 }
 
 function openEpisodeDialog(mode, id = "") {
@@ -444,14 +447,14 @@ $("episodeForm").addEventListener("submit", async (event) => {
     } else {
       const deletedAt = new Date().toISOString();
       const before = await updateEpisode(id, (episode) => ({ ...episode, deletedAt }));
-      showToast(`已刪除 ${before.name}`, "復原", async () => run(() => withStorageLock(async () => {
+      showToast(`已刪除 ${before.name}`, "復原", () => withStorageLock(async () => {
         const all = await chrome.storage.local.get(null);
         const key = Library.episodeKey(id);
         if (all[key]?.deletedAt !== deletedAt) return;
         const name = Library.checkName(all[key].name, all, id);
         const { deletedAt: removed, ...restored } = all[key];
         await chrome.storage.local.set({ [key]: { ...restored, name, updatedAt: new Date().toISOString() } });
-      })));
+      }));
     }
     $("episodeDialog").close();
     await refreshList();
@@ -552,13 +555,9 @@ function renderAssignVideos() {
 
 $("assignEpisode").addEventListener("change", () => run(async () => {
   const id = $("assignEpisode").value;
-  const preference = "lastEpisodeId";
-  settings[preference] = id;
+  settings.lastEpisodeId = id;
   renderAssignVideos();
-  await withStorageLock(async () => {
-    const stored = (await chrome.storage.local.get("settings")).settings || {};
-    await chrome.storage.local.set({ settings: { ...stored, [preference]: id } });
-  });
+  await updateSettings({ lastEpisodeId: id });
 }));
 $("assignForm").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -659,7 +658,7 @@ async function migrateLibrary() {
 
 // Only the latest deletion can be undone.
 function showUndo(videoKey, marker, deletedAt) {
-  showToast(`已刪除「${marker.note || "Marker"}」`, "復原", () =>
+  showToast(`已刪除「${marker.note || DEFAULT_MARKER_NOTE}」`, "復原", () =>
     changeMarker(videoKey, marker.id, { deletedAt: undefined }, deletedAt)
   );
 }
@@ -674,7 +673,7 @@ function adapterFor(url) {
 
 // The most recently used tab showing this video, if any.
 async function findVideoTab(videoKey) {
-  const tabs = await chrome.tabs.query({ url: ["https://live.tcc.gov.tw/*", "https://www.youtube.com/*"] });
+  const tabs = await chrome.tabs.query({ url: (window.SiteAdapters || []).map((adapter) => adapter.urlPattern) });
   return tabs
     .filter((tab) => videoKeyFromUrl(tab.url) === videoKey)
     .sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))[0];
@@ -712,7 +711,7 @@ async function seekMarker(video, marker, play) {
     if (play) await adapter.play(tab.id, marker.time);
     else await adapter.cue(tab.id, marker.time);
   } catch (error) {
-    showToast(`無法${play ? "播放" : "CUE"}「${marker.note || "Marker"}」：${error.message}`);
+    showToast(`無法${play ? "播放" : "CUE"}「${marker.note || DEFAULT_MARKER_NOTE}」：${error.message}`);
   }
 }
 

@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const { webcrypto } = require('node:crypto');
 const path = require('node:path');
 const context = vm.createContext({ crypto: webcrypto, URL, navigator: {} });
-for (const file of ['lib/markers.js', 'lib/video-key.js', 'lib/import-formats.js', 'lib/library.js']) {
+for (const file of ['lib/timecode.js', 'lib/markers.js', 'lib/video-key.js', 'lib/import-formats.js', 'lib/library.js']) {
   vm.runInContext(readFileSync(path.join(__dirname, '..', file), 'utf8'), context);
 }
 const library = vm.runInContext('Library', context);

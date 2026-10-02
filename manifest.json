@@ -11,7 +11,7 @@
   },
   "content_scripts": [{
     "matches": ["https://live.tcc.gov.tw/*", "https://www.youtube.com/*"],
-    "js": ["lib/video-key.js", "content/video-controller.js"],
+    "js": ["lib/timecode.js", "lib/video-key.js", "content/video-controller.js"],
     "run_at": "document_idle",
     "all_frames": true
   }]
