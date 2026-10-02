@@ -253,3 +253,17 @@ test('Video keys accept HTTPS only and normalize TCC pages without a video ID', 
   assert.equal(keyOf('https://live.tcc.gov.tw/Page.aspx?token=x&a=1&b=2#t=5'), stable);
   assert.equal(keyOf(stable.slice(5)), stable);
 });
+
+test('Imports accept up to 50000 markers and merge them in linear time', () => {
+  const rows = count => ['url,timecode,note', ...Array.from({ length: count },
+    (_, i) => `https://www.youtube.com/watch?v=abcdefghijk,${i},第 ${i} 段`)].join('\n');
+  assert.match(library.parse(rows(50001)).errors[0], /50000/);
+  const limit = library.parse(rows(50000));
+  assert.equal(limit.errors.length, 0);
+  const started = Date.now();
+  const plan = library.planImport(limit, seed(), '', '');
+  assert.ok(Date.now() - started < 2000);
+  assert.equal(plan.videos[0].added.length, 50000);
+  const repeated = library.planImport(limit, library.importUpdates(plan, seed()), '', '');
+  assert.equal(repeated.videos[0].duplicates, 50000);
+});
