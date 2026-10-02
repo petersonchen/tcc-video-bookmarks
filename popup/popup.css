@@ -45,6 +45,8 @@ input {
   margin-top: 8px;
   padding: 10px;
 }
+.hint { margin-top: 6px; text-align: center; }
+#leadHint { margin-right: 8px; }
 .section-title {
   display: flex;
   justify-content: space-between;

@@ -79,6 +79,14 @@ async function seek(marker, play) {
   }
 }
 
+// Shows the shortcut the user actually has, since it can be changed or unset.
+async function showShortcutHint() {
+  const command = (await chrome.commands.getAll()).find((item) => item.name === "save-marker");
+  if (!command?.shortcut) return;
+  $("shortcutHint").textContent = `快捷鍵 ${command.shortcut}：不開 popup 直接儲存`;
+  $("shortcutHint").classList.remove("hidden");
+}
+
 function showError(text) {
   $("unsupported").textContent = text;
   $("unsupported").classList.remove("hidden");
@@ -111,6 +119,9 @@ async function init() {
   $("note").value = `Marker ${state.formattedTime}`;
   $("controls").classList.remove("hidden");
   cueLead = await loadCueLead();
+  $("leadHint").textContent = `CUE／PLAY 提前 ${cueLead} 秒`;
+  $("leadHint").classList.toggle("hidden", !cueLead);
+  await showShortcutHint();
   await saveVideoMeta();
   await loadMarkers();
   $("note").focus();

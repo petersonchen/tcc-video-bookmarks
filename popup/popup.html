@@ -31,10 +31,11 @@
       <label for="note">Marker 說明</label>
       <input id="note" type="text" maxlength="120" placeholder="例如：交通局回答">
       <button id="save" class="primary">＋ 儲存目前位置</button>
+      <div id="shortcutHint" class="muted hint hidden"></div>
 
       <div class="section-title">
         <span>這支影片的 Markers</span>
-        <span id="count" class="muted"></span>
+        <span class="muted"><span id="leadHint" class="hidden"></span><span id="count"></span></span>
       </div>
       <div id="markers"></div>
       <div id="empty" class="empty">尚未建立 Marker</div>
