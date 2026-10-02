@@ -69,7 +69,8 @@ function renderList() {
   let hiddenGroups = 0;
   matched.forEach(({ episode, groupVideos }) => {
     if (budget <= 0) {
-      hiddenGroups++;
+      // backlog is not an Episode, so only its videos are counted.
+      if (episode.id) hiddenGroups++;
       hiddenVideos += groupVideos.length;
       return;
     }

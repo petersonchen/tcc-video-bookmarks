@@ -77,7 +77,7 @@ const root = require('node:path').resolve(__dirname, '..');
   // Large libraries render a page of videos at a time.
   await page.evaluate(() => { listLimit = 1; renderList(); });
   assert.equal(await page.locator('#list .video').count(), 1);
-  assert.equal(await page.locator('#listMore').textContent(), '顯示更多（還有 2 支影片、2 個 Episode）');
+  assert.equal(await page.locator('#listMore').textContent(), '顯示更多（還有 2 支影片、1 個 Episode）');
   await page.locator('#listMore').click();
   assert.equal(await page.locator('#list .video').count(), 3);
   assert.equal(await page.locator('#listMore').isVisible(), false);
