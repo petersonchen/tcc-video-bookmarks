@@ -4,7 +4,7 @@
 
 ## 資料儲存
 
-MPY Timecode Marker 會將使用者建立的 Marker 儲存在瀏覽器提供的 `chrome.storage.local` 本機儲存空間。
+MPY Timecode Marker 會將使用者建立的 Marker 儲存在瀏覽器提供的 `chrome.storage.local` 本機儲存空間。`unlimitedStorage` 權限只用來解除這個本機空間的 10 MB 上限，資料不會因此離開瀏覽器。
 
 Marker 可能包含：
 

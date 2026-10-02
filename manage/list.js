@@ -7,6 +7,10 @@ const selectedRows = new Map();
 let visibleRows = new Map();
 const selectionKey = (episodeId, videoKey) => JSON.stringify([episodeId, videoKey]);
 let visibleVideoKeys = new Set();
+// The list renders at most this many videos until "顯示更多" raises the limit,
+// so a large library or a broad search does not build thousands of rows.
+const LIST_PAGE_SIZE = 200;
+let listLimit = LIST_PAGE_SIZE;
 
 // fzf-like: the term's characters appear in order, not necessarily adjacent.
 // Terms made only of digits and date or time separators must appear as typed;
@@ -52,12 +56,23 @@ function renderList() {
   list.textContent = "";
   visibleVideoKeys = new Set();
   visibleRows = new Map();
-  groups.forEach((episode) => {
-    const groupVideos = Library.groupVideos(snapshot, episode.id).map((video) => ({
+  // An empty Episode remains visible without a search, or when its name matches.
+  const matched = groups.map((episode) => ({
+    episode,
+    groupVideos: Library.groupVideos(snapshot, episode.id, videos).map((video) => ({
       ...video, markers: video.markers.filter((marker) => matchesMarker(video, marker, episode.name, terms))
-    })).filter((video) => video.markers.length);
-    // An empty Episode remains visible without a search, or when its name matches.
-    if (terms.length && !groupVideos.length && !terms.every((term) => Library.matchEpisodeTerm(episode.name, term) ?? termMatches(episode.name.toLowerCase(), term))) return;
+    })).filter((video) => video.markers.length)
+  })).filter(({ episode, groupVideos }) => !terms.length || groupVideos.length ||
+    terms.every((term) => Library.matchEpisodeTerm(episode.name, term) ?? termMatches(episode.name.toLowerCase(), term)));
+  let budget = listLimit;
+  let hiddenVideos = 0;
+  let hiddenGroups = 0;
+  matched.forEach(({ episode, groupVideos }) => {
+    if (budget <= 0) {
+      hiddenGroups++;
+      hiddenVideos += groupVideos.length;
+      return;
+    }
     const group = element("section", "episode-group");
     group.dataset.episodeId = episode.id;
     const heading = element("div", "episode-heading");
@@ -75,7 +90,10 @@ function renderList() {
     }
     heading.append(actions);
     group.append(heading);
-    groupVideos.forEach((video) => {
+    const shownVideos = groupVideos.slice(0, budget);
+    budget -= shownVideos.length;
+    hiddenVideos += groupVideos.length - shownVideos.length;
+    shownVideos.forEach((video) => {
       visibleVideoKeys.add(video.videoKey);
       visibleRows.set(selectionKey(episode.id, video.videoKey), { episodeId: episode.id, videoKey: video.videoKey });
       group.append(renderVideo(video, episode.id, canDrag));
@@ -87,6 +105,8 @@ function renderList() {
   const hidden = terms.length ? 0 : allEpisodes.length - shown.length;
   $("listHint").textContent = hidden ? `另有 ${hidden} 個 Episode 未顯示。可用搜尋找到，或在設定增加顯示數量。` : "";
   $("listHint").classList.toggle("hidden", !hidden);
+  $("listMore").textContent = `顯示更多（還有 ${hiddenVideos} 支影片${hiddenGroups ? `、${hiddenGroups} 個 Episode` : ""}）`;
+  $("listMore").classList.toggle("hidden", !hiddenVideos && !hiddenGroups);
   for (const key of selectedRows.keys()) if (!visibleRows.has(key)) selectedRows.delete(key);
   updateSelection();
 }
@@ -272,7 +292,13 @@ function showUndo(videoKey, marker, deletedAt) {
   );
 }
 
+$("listMore").addEventListener("click", () => {
+  listLimit += LIST_PAGE_SIZE;
+  renderList();
+});
+
 $("search").addEventListener("input", () => {
+  listLimit = LIST_PAGE_SIZE;
   selectedRows.clear();
   selectedVideoKeys.clear();
   renderList();

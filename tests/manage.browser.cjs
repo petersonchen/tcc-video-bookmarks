@@ -74,6 +74,14 @@ const root = require('node:path').resolve(__dirname, '..');
   assert.equal(await page.locator('#list .video').count(), 0);
   await page.locator('#search').fill('');
   assert.equal(await page.locator('section[data-episode-id=""] .video').count(), 1);
+  // Large libraries render a page of videos at a time.
+  await page.evaluate(() => { listLimit = 1; renderList(); });
+  assert.equal(await page.locator('#list .video').count(), 1);
+  assert.equal(await page.locator('#listMore').textContent(), '顯示更多（還有 2 支影片、2 個 Episode）');
+  await page.locator('#listMore').click();
+  assert.equal(await page.locator('#list .video').count(), 3);
+  assert.equal(await page.locator('#listMore').isVisible(), false);
+  await page.evaluate(() => { listLimit = LIST_PAGE_SIZE; renderList(); });
   const videoGeometry = () => page.locator('section[data-episode-id="11"] .video').evaluate(node => {
     const rect = selector => { const box = node.querySelector(selector).getBoundingClientRect(); return { x: box.x, y: box.y, height: box.height, width: box.width }; };
     return { title: rect('.video-title'), time: rect('.marker-time'), marker: rect('.marker'), video: { height: node.getBoundingClientRect().height } };
@@ -421,6 +429,6 @@ const root = require('node:path').resolve(__dirname, '..');
   assert.deepEqual(sharedDb['episode:search-102'].videoKeys, ['youtube:abcdefghijk']);
   await context.close();
   assert.deepEqual(errors, []);
-  console.log('PASS: natural sorting, N limit, global search, create/rename, main-list selection, backlog batch, remembered Episode, sticky controls, shared edit, drag add/reorder, selection remove/undo, export/import, delete/undo, mobile overflow, concurrent manage pages and popup edit/save; no page errors');
+  console.log('PASS: natural sorting, N limit, global search, create/rename, main-list selection, backlog batch, remembered Episode, sticky controls, shared edit, drag add/reorder, selection remove/undo, export/import, delete/undo, mobile overflow, concurrent manage pages and popup edit/save, paged list; no page errors');
   await browser.close();
 })().catch(error => { console.error(error); process.exit(1); });

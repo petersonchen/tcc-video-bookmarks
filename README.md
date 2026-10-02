@@ -168,7 +168,7 @@ node tests/manage.browser.cjs
 
 本擴充功能不需要使用者帳號，不使用自有後端伺服器、外部資料庫、Analytics、廣告或 AI 服務。
 
-Marker 使用 Chrome Extension 的 `chrome.storage.local` 儲存在使用者自己的瀏覽器中。
+Marker 使用 Chrome Extension 的 `chrome.storage.local` 儲存在使用者自己的瀏覽器中，並以 `unlimitedStorage` 權限解除 10 MB 上限。
 
 詳細內容請參閱 [PRIVACY.md](PRIVACY.md)。
 

@@ -3,7 +3,7 @@
   "name": "MPY Timecode Marker",
   "version": "0.3.0",
   "description": "Save, cue, and play timecode markers on supported video websites.",
-  "permissions": ["storage", "activeTab", "scripting"],
+  "permissions": ["storage", "unlimitedStorage", "activeTab", "scripting"],
   "host_permissions": ["https://live.tcc.gov.tw/*", "https://www.youtube.com/*"],
   "action": {
     "default_title": "MPY Timecode Marker",

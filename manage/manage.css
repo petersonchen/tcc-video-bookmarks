@@ -31,6 +31,7 @@ summary h2 { margin: 0; }
 details[open] > summary { margin-bottom: 8px; }
 .empty { padding: 12px; text-align: center; color: #64748b; font-size: 13px; }
 .hint { margin-top: 12px; color: #64748b; font-size: 13px; text-align: center; }
+#listMore { display: block; margin: 12px auto 0; }
 .setting { display: block; margin-bottom: 6px; font-size: 14px; }
 .setting input { width: 72px; margin: 0 4px; text-align: right; }
 
