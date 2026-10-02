@@ -237,33 +237,7 @@ function renderMarker(video, marker) {
 function renderEditableMarker(video, marker) {
   const row = element("div", "marker marker-editable");
 
-  const time = element("input", "marker-edit marker-time");
-  time.value = formatTime(marker.time);
-  time.title = "編輯 Timecode";
-  time.addEventListener("change", () => run(async () => {
-    const value = parseTimecode(time.value);
-    if (value === null) {
-      time.value = formatTime(marker.time);
-      return;
-    }
-    await changeMarker(video.videoKey, marker.id, { time: value, updatedAt: new Date().toISOString() });
-  }));
-
-  const note = element("input", "marker-edit marker-note");
-  note.value = marker.note || DEFAULT_MARKER_NOTE;
-  note.title = "編輯標題";
-  note.addEventListener("change", () => run(async () => {
-    await changeMarker(video.videoKey, marker.id, {
-      note: note.value.trim() || DEFAULT_MARKER_NOTE,
-      updatedAt: new Date().toISOString()
-    });
-  }));
-
-  [time, note].forEach((input) => {
-    input.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") input.blur();
-    });
-  });
+  const { time, note } = markerEditFields(video.videoKey, marker, (error) => showToast(error.message));
 
   const remove = element("button", "delete", "×");
   remove.title = "刪除";

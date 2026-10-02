@@ -149,7 +149,8 @@ node tests/manage.browser.cjs
 - `manage/manage.js`：設定、Marker 模式、storage 同步與頁面初始化
 - `lib/buttons.css`：管理頁與 popup 共用的按鈕尺寸、配色及互動狀態
 - `lib/timecode.js`：Timecode 格式與解析，content script、popup 與管理頁共用
-- `lib/markers.js`：popup 與管理頁共用的 storage key 與寫入鎖
+- `lib/markers.js`：popup 與管理頁共用的 storage key、寫入鎖與 Marker 修改
+- `lib/marker-fields.js`：popup 與管理頁共用的 Marker 時間、說明編輯欄位
 - `lib/import-formats.js`：格式解析入口，將 v2 JSON、CSV／TSV 轉為共用匯入資料；新增格式時擴充 reader
 - `lib/library.js`：Episode 歸屬、自然排序、backlog 與共用匯入合併、v2 匯出
 - `lib/video-key.js`：由影片網址決定 Marker 的儲存 key，content script 與管理頁共用

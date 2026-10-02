@@ -320,6 +320,12 @@ const root = require('node:path').resolve(__dirname, '..');
   await popup.locator('#save').click();
   await popup.waitForFunction(() => document.querySelectorAll('#markers .marker').length === 2);
   assert.equal(sharedDb['markers:youtube:abcdefghijk'].length, 2);
+  // Shared edit fields: Enter ends the edit, and an empty Timecode restores the stored value.
+  await popup.locator('#markers .marker-time').first().fill('');
+  await popup.locator('#markers .marker-time').first().press('Enter');
+  assert.equal(await popup.evaluate(() => document.activeElement?.matches('#markers input')), false);
+  assert.equal(await popup.locator('#markers .marker-time').first().inputValue(), '00:01:10');
+  assert.equal(sharedDb['markers:youtube:abcdefghijk'][0].time, 70);
   await first.waitForFunction(() => document.querySelectorAll('[data-video-key="youtube:abcdefghijk"] .marker').length === 2);
   // Episode queries use name prefixes rather than fuzzy Marker text.
   await first.evaluate(async () => {

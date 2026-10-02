@@ -17,18 +17,6 @@ async function loadMarkers() {
   render();
 }
 
-async function updateStoredMarker(id, changes) {
-  await withStorageLock(async () => {
-    const key = markersKey(state.videoKey);
-    const stored = (await chrome.storage.local.get(key))[key] || [];
-    const marker = stored.find((item) => item.id === id);
-    if (!marker || !isLive(marker)) return;
-    Object.assign(marker, changes);
-    await chrome.storage.local.set({ [key]: stored });
-  });
-  // The storage.onChanged listener reloads the list once focus leaves the inputs.
-}
-
 // Keep the title and URL while preserving any other metadata fields.
 async function saveVideoMeta() {
   await withStorageLock(async () => {
@@ -51,28 +39,8 @@ function render() {
     const row = document.createElement("div");
     row.className = "marker";
 
-    const time = document.createElement("input");
-    time.className = "marker-edit marker-time";
-    time.value = formatTime(marker.time);
-    time.title = "編輯 Timecode";
-    time.addEventListener("change", async () => {
-      const value = parseTimecode(time.value);
-      if (value === null) {
-        time.value = formatTime(marker.time);
-        return;
-      }
-      try { await updateStoredMarker(marker.id, { time: value, updatedAt: new Date().toISOString() }); }
-      catch (error) { showError(error.message); }
-    });
-
-    const note = document.createElement("input");
-    note.className = "marker-edit marker-note";
-    note.value = marker.note || DEFAULT_MARKER_NOTE;
-    note.title = "編輯標題";
-    note.addEventListener("change", async () => {
-      try { await updateStoredMarker(marker.id, { note: note.value.trim() || DEFAULT_MARKER_NOTE, updatedAt: new Date().toISOString() }); }
-      catch (error) { showError(error.message); }
-    });
+    // The storage.onChanged listener reloads the list once focus leaves the inputs.
+    const { time, note } = markerEditFields(state.videoKey, marker, (error) => showError(error.message));
 
     const cue = document.createElement("button");
     cue.className = "cue";
@@ -103,7 +71,7 @@ function render() {
     remove.title = "刪除";
     remove.textContent = "×";
     remove.addEventListener("click", async () => {
-      try { await updateStoredMarker(marker.id, { deletedAt: new Date().toISOString() }); }
+      try { await changeMarker(state.videoKey, marker.id, { deletedAt: new Date().toISOString() }); }
       catch (error) { showError(error.message); }
     });
 

@@ -11,23 +11,6 @@ function element(tag, className, text) {
 
 const SITE_LABELS = { tcc: "TCC", youtube: "YouTube" };
 
-// Reads the stored array again so changes made in the popup meanwhile are kept.
-// A value of undefined removes the field.
-async function changeMarker(videoKey, id, changes, expectedDeletedAt) {
-  return withStorageLock(async () => {
-    const key = markersKey(videoKey);
-    const stored = (await chrome.storage.local.get(key))[key] || [];
-    const marker = stored.find((item) => item.id === id);
-    if (!marker || (expectedDeletedAt && marker.deletedAt !== expectedDeletedAt)) return;
-    if (marker.deletedAt && !Object.hasOwn(changes, "deletedAt")) return;
-    Object.entries(changes).forEach(([field, value]) => {
-      if (value === undefined) delete marker[field];
-      else marker[field] = value;
-    });
-    await chrome.storage.local.set({ [key]: stored });
-  });
-}
-
 let videos = [];
 let snapshot = {};
 let toastTimer;
