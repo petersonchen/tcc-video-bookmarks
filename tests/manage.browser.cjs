@@ -72,14 +72,24 @@ const root = require('node:path').resolve(__dirname, '..');
   assert.equal(migrated['order:2026-09-20'], undefined);
   assert.equal(migrated.settings.recentDays, undefined);
   assert.equal(await page.locator('section[data-episode-id=""] .video').count(), 1);
+  const videoGeometry = () => page.locator('section[data-episode-id="11"] .video').evaluate(node => {
+    const rect = selector => { const box = node.querySelector(selector).getBoundingClientRect(); return { x: box.x, y: box.y, height: box.height, width: box.width }; };
+    return { title: rect('.video-title'), time: rect('.marker-time'), marker: rect('.marker'), video: { height: node.getBoundingClientRect().height } };
+  });
+  const editGeometry = await videoGeometry();
+  const libraryTop = await page.locator('#list').evaluate(node => node.getBoundingClientRect().top);
+  const toolbarHeight = await page.locator('.marker-toolbar').evaluate(node => node.offsetHeight);
   for (const mode of ['cue', 'play']) {
     await page.locator(`#modes button[data-mode="${mode}"]`).click();
     await page.waitForFunction(() => document.getElementById('newEpisode').classList.contains('hidden') && !document.querySelector('.marker-note'));
     assert.equal(await page.locator('#newEpisode').isVisible(), false);
     assert.equal(await page.locator('.marker-preview').count(), 0);
+    assert.equal(await page.locator('.marker-toolbar').evaluate(node => node.offsetHeight), toolbarHeight);
+    assert.equal(await page.locator('#list').evaluate(node => node.getBoundingClientRect().top), libraryTop);
+    assert.deepEqual(await videoGeometry(), editGeometry);
     assert.equal(await page.locator('.group-actions').getByRole('button', { name: '改名', exact: true }).count(), 0);
     assert.equal(await page.locator('.group-actions').getByRole('button', { name: '刪除', exact: true }).count(), 0);
-    assert.equal(await page.locator('.group-actions').getByRole('button', { name: '匯出', exact: true }).count(), 2);
+    assert.equal(await page.locator('.group-actions').getByRole('button', { name: '匯出', exact: true }).count(), 0);
     assert.equal(await page.locator('section[data-episode-id=""]').count(), 0);
     await page.locator('#search').fill('待整理');
     assert.equal(await page.locator('section[data-episode-id=""] .video').count(), 1);
@@ -107,6 +117,7 @@ const root = require('node:path').resolve(__dirname, '..');
   assert.equal(await page.locator('.video-select:checked').count(), 1);
   assert.equal(await page.locator('#selectionCount').textContent(), '已選 1 支影片');
   await page.locator('#assignSelected').click();
+  assert.equal(await page.locator('.library-heading').evaluate(node => node.parentElement.open), true);
   await page.locator('#assignEpisode').selectOption(ep12);
   await page.locator('#assignSave').click();
   await page.waitForFunction(() => !document.getElementById("assignDialog").open);
@@ -187,6 +198,15 @@ const root = require('node:path').resolve(__dirname, '..');
   await page.locator('details').filter({ has: page.getByRole('heading', { name: '匯入', exact: true }) }).locator('summary').click();
   // Sticky controls stay visible even while scrolling to settings.
   await page.setViewportSize({ width: 1280, height: 700 });
+  await page.evaluate(() => { document.getElementById('list').style.minHeight = '1800px'; window.scrollTo(0, 400); });
+  await page.waitForFunction(() => document.querySelector('.library-heading').getBoundingClientRect().top === document.querySelector('.marker-toolbar').getBoundingClientRect().bottom);
+  const stickyCoverage = await page.locator('.library-heading').evaluate(node => {
+    const heading = node.getBoundingClientRect(), card = node.parentElement.getBoundingClientRect();
+    return { left: heading.left === card.left, right: heading.right === card.right, background: getComputedStyle(node).backgroundColor };
+  });
+  assert.deepEqual(stickyCoverage, { left: true, right: true, background: 'rgb(255, 255, 255)' });
+  await page.evaluate(() => { document.getElementById('list').style.minHeight = ''; window.scrollTo(0, 0); });
+
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   const toolbar = await page.locator('.marker-toolbar').boundingBox();
   const modes = await page.locator('#modes').boundingBox();

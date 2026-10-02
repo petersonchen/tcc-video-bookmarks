@@ -161,14 +161,14 @@ function renderList() {
     heading.append(element("h3", "episode-name", episode.name), element("span", "group-count", `${groupVideos.length} 支影片`));
     const actions = element("div", "group-actions");
     if (episode.id) {
-      actions.append(actionButton("匯出", () => generateExport(episode.id)));
       if (markerMode === "edit") {
+        actions.append(actionButton("匯出", () => generateExport(episode.id)));
         actions.append(actionButton("改名", () => openEpisodeDialog("rename", episode.id)),
           actionButton("刪除", () => openEpisodeDialog("delete", episode.id)));
       }
       if (canDrag) enableGroupDrop(group, episode.id);
     } else {
-      actions.append(actionButton("匯出", () => generateExport("")));
+      if (markerMode === "edit") actions.append(actionButton("匯出", () => generateExport("")));
     }
     heading.append(actions);
     group.append(heading);
@@ -207,6 +207,10 @@ function renderVideo(video, episodeId, canDrag) {
     handle.title = episodeId ? "拖拉排序，或拖到其他 Episode 加入影片" : "拖到 Episode 加入影片";
     heading.prepend(handle);
     enableDrag(block, handle, episodeId);
+  } else {
+    const spacer = element("span", "drag-spacer control-spacer");
+    spacer.setAttribute("aria-hidden", "true");
+    heading.prepend(spacer);
   }
   if (markerMode === "edit") {
     const select = element("input", "video-select");
@@ -222,6 +226,10 @@ function renderVideo(video, episodeId, canDrag) {
       updateSelection();
     });
     heading.prepend(select);
+  } else {
+    const spacer = element("span", "select-spacer control-spacer");
+    spacer.setAttribute("aria-hidden", "true");
+    heading.prepend(spacer);
   }
   block.append(heading);
   video.markers.forEach((marker) => block.append(renderMarker(video, marker)));
@@ -487,6 +495,11 @@ function updateSelection() {
     checkbox.checked = selectedRows.has(checkbox.dataset.selectionKey);
   });
 }
+
+// Buttons inside the summary should operate without toggling the library.
+$("editSelection").addEventListener("click", (event) => {
+  if (event.target.closest("button")) event.preventDefault();
+});
 
 $("selectAllVideos").addEventListener("click", () => {
   for (const [key, row] of visibleRows) selectedRows.set(key, row);
@@ -857,5 +870,5 @@ migrateLibrary().then(() => Promise.all([loadSettings(), loadMarkerMode()])).the
 
 // Keep browser scrolling and keyboard focus clear of the sticky controls.
 new ResizeObserver(([entry]) => {
-  document.documentElement.style.setProperty("--toolbar-height", `${entry.target.offsetHeight + 8}px`);
+  document.documentElement.style.setProperty("--toolbar-height", `${entry.target.offsetHeight}px`);
 }).observe(document.querySelector(".marker-toolbar"));

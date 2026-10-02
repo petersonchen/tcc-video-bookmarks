@@ -23,10 +23,15 @@
           <button data-mode="edit" title="編輯或刪除 Marker">EDIT</button>
         </div>
       </div>
+
+    </div>
+
+    <details class="card" open>
+      <summary class="library-heading"><h2>影片庫</h2>
       <div id="editSelection" class="edit-selection hidden">
         <div class="selection-controls">
           <span id="selectionCount" class="muted" aria-live="polite">已選 0 支影片</span>
-          <button id="selectAllVideos" class="small-button">全選顯示的影片</button>
+          <button id="selectAllVideos" class="small-button" title="全選目前顯示的影片">全選</button>
           <button id="clearSelection" class="small-button" disabled>取消選取</button>
         </div>
         <div class="selection-actions">
@@ -34,10 +39,8 @@
         <button id="removeSelected" class="small-button" disabled>從 Episode 移除</button>
         </div>
       </div>
-    </div>
-
-    <details class="card" open>
-      <summary><h2>影片庫</h2><button id="newEpisode" class="small-button hidden" type="button">＋ 新增 Episode</button></summary>
+        <button id="newEpisode" class="small-button hidden" type="button">＋ 新增 Episode</button>
+      </summary>
       <div id="list"></div>
       <div id="listEmpty" class="empty hidden"></div>
       <div id="listHint" class="hint hidden"></div>

@@ -36,7 +36,9 @@ details[open] > summary { margin-bottom: 8px; }
 
 .marker-toolbar { position: sticky; top: 0; z-index: 10; padding: 16px; margin-bottom: 16px; border-radius: 8px; background: #fff; box-shadow: 0 2px 8px rgb(15 23 42 / 8%); }
 .list-tools { display: flex; gap: 8px; }
-.edit-selection { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding-top: 10px; margin-top: 10px; border-top: 1px solid #e2e8f0; }
+.edit-selection { display: flex; align-items: center; flex: 1; flex-wrap: wrap; gap: 16px; min-width: 0; }
+.library-heading { min-height: 44px; position: sticky; top: var(--toolbar-height, 80px); z-index: 9; background: #fff; gap: 12px; margin-left: -16px; margin-right: -16px; padding: 8px 16px; }
+.library-heading h2, #newEpisode { flex: none; }
 .edit-selection button { padding: 3px 9px; font-size: 12px; line-height: 20px; }
 .selection-controls, .selection-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .selection-actions { margin-left: auto; justify-content: flex-end; }
@@ -54,6 +56,7 @@ details[open] > summary { margin-bottom: 8px; }
 .episode-group:first-child { margin-top: 0; }
 .episode-heading {
   display: flex;
+  min-height: 33px;
   align-items: center;
   gap: 8px;
   margin: 0 0 6px;
@@ -62,7 +65,10 @@ details[open] > summary { margin-bottom: 8px; }
 }
 .episode-name { margin: 0; font-size: 14px; font-variant-numeric: tabular-nums; }
 .video { margin: 0 0 10px 12px; }
-.video-heading { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.video-heading { display: flex; align-items: center; gap: 6px; min-height: 22px; margin-bottom: 4px; }
+.select-spacer { width: 16px; height: 16px; flex: none; }
+.drag-spacer { width: 20px; height: 16px; flex: none; }
+.control-spacer { visibility: hidden; pointer-events: none; }
 /* Fixed width so titles line up whatever the site label. */
 .site-badge {
   flex: none;
@@ -74,7 +80,7 @@ details[open] > summary { margin-bottom: 8px; }
   font-size: 11px;
   font-weight: 700;
 }
-.drag-handle { flex: none; padding: 0 4px; color: #64748b; font-size: 16px; font-weight: 700; line-height: 1; cursor: grab; user-select: none; letter-spacing: -3px; }
+.drag-handle { width: 20px; text-align: center; flex: none; padding: 0 4px; color: #64748b; font-size: 16px; font-weight: 700; line-height: 1; cursor: grab; user-select: none; letter-spacing: -3px; }
 .drag-handle:hover { color: #0f172a; }
 .video.dragging { opacity: 0.4; }
 .video.drop-before { box-shadow: 0 -2px 0 #2563eb; }
@@ -93,21 +99,27 @@ details[open] > summary { margin-bottom: 8px; }
 .video-title a:hover { text-decoration: underline; }
 .marker {
   display: grid;
-  grid-template-columns: 90px minmax(0, 1fr) auto;
+  grid-template-columns: 28px 90px minmax(0, 1fr) 28px;
+  min-height: 30px;
   gap: 6px;
   align-items: center;
   margin: 0 0 4px 16px;
 }
-.marker-edit { min-width: 0; padding: 5px 7px; border-color: transparent; background: #f8fafc; font-size: 13px; }
+.marker-edit { height: 30px; line-height: 18px; min-width: 0; padding: 5px 7px; border-color: transparent; background: #f8fafc; font-size: 13px; }
 .marker-edit:focus { border-color: #94a3b8; background: #fff; outline: none; }
 .marker-time { font-variant-numeric: tabular-nums; font-weight: 700; }
-.marker-editable { grid-template-columns: 28px 90px minmax(0, 1fr) auto; }
+.marker-editable { border-radius: 6px; }
+.marker-editable:hover, .marker-editable:focus-within { background: #e0e7ff; }
+.marker-editable:hover .marker-edit:not(:focus), .marker-editable:focus-within .marker-edit:not(:focus) { background: transparent; }
+.marker-editable:hover .delete, .marker-editable:focus-within .delete { color: #b91c1c; }
+.marker-editable .delete:hover:not(:disabled) { background: #fee2e2; }
+
 .marker-preview { width: 28px; padding: 3px 0; border-color: transparent; background: transparent; color: #64748b; font-size: 12px; }
 .marker-preview:hover:not(:disabled) { border-color: transparent; background: #e0e7ff; color: #2563eb; }
 .marker-preview:active:not(:disabled) { background: #c7d2fe; }
 /* In CUE / PLAY mode the whole row is one button. */
 .marker-action {
-  grid-template-columns: 90px minmax(0, 1fr);
+  grid-template-columns: 28px 90px minmax(0, 1fr) 28px;
   width: calc(100% - 16px);
   padding: 0;
   border: 0;
@@ -117,7 +129,9 @@ details[open] > summary { margin-bottom: 8px; }
   font-weight: normal;
   text-align: left;
 }
-.marker-action span { padding: 5px 7px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.marker-action .marker-time { grid-column: 2; }
+.marker-action span:last-child { grid-column: 3; }
+.marker-action span { height: 30px; line-height: 18px; border: 1px solid transparent; padding: 5px 7px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .marker-action:hover:not(:disabled) { background: #e0e7ff; }
 .marker-action:active:not(:disabled) { background: #c7d2fe; }
 .toast {
@@ -173,7 +187,9 @@ dialog label > input:not([type="checkbox"]), dialog label > select { width: 100%
 .assign-video input { flex: none; margin-top: 3px; }
 .toast { max-width: calc(100vw - 32px); width: max-content; z-index: 20; }
 @media (max-width: 700px) {
-  .selection-actions { width: 100%; }
+  .library-heading { flex-wrap: wrap; }
+  .edit-selection { order: 1; flex-basis: 100%; gap: 8px; }
+  .selection-actions { margin-left: auto; }
   .list-tools { flex-wrap: wrap; }
   #search { flex-basis: 100%; }
   .video-heading { flex-wrap: wrap; }
