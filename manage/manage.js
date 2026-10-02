@@ -49,26 +49,6 @@ async function refreshList() {
   refreshTargets();
 }
 
-// Dates stay intact. Existing videos naturally become backlog members.
-async function migrateLibrary() {
-  await withStorageLock(async () => {
-    const all = await chrome.storage.local.get(null);
-    if (all.libraryVersion === 2) return;
-    const updates = { libraryVersion: 2 };
-    const { recentDays, ...storedSettings } = all.settings || {};
-    updates.settings = { ...DEFAULT_SETTINGS, ...storedSettings };
-    Object.entries(all).forEach(([key, meta]) => {
-      if (key.startsWith(VIDEO_META_PREFIX) && meta && Object.hasOwn(meta, "pickedAt")) {
-        const { pickedAt, ...remaining } = meta;
-        updates[key] = remaining;
-      }
-    });
-    const oldOrders = Object.keys(all).filter((key) => /^order:\d{4}-\d{2}-\d{2}$/.test(key));
-    if (oldOrders.length) await chrome.storage.local.remove(oldOrders);
-    await chrome.storage.local.set(updates);
-  });
-}
-
 // Re-rendering would drop an edit in progress, so wait until focus leaves the
 // list's inputs.
 chrome.storage.onChanged.addListener((changes, area) => run(async () => {
@@ -81,7 +61,7 @@ chrome.storage.onChanged.addListener((changes, area) => run(async () => {
 
 $("version").textContent = `v${chrome.runtime.getManifest().version}`;
 
-migrateLibrary().then(() => Promise.all([loadSettings(), loadMarkerMode()])).then(refreshList)
+Promise.all([loadSettings(), loadMarkerMode()]).then(refreshList)
   .catch((error) => showToast(`無法載入：${error.message}`));
 
 // Keep browser scrolling and keyboard focus clear of the sticky controls.

@@ -18,8 +18,8 @@ const root = require('node:path').resolve(__dirname, '..');
     const date = '2026-09-20T00:00:00.000Z';
     const marker = (id, time, note) => ({ id, time, note, createdAt: date, updatedAt: date });
     window.__db = {
-      settings: { recentDays: 14, recentEpisodes: 2 }, markerMode: 'edit',
-      'videos:youtube:abcdefghijk': { site: 'youtube', title: '交通議題影片 A', pageUrl: 'https://www.youtube.com/watch?v=abcdefghijk', pickedAt: '2026-10-01T00:00:00.000Z' },
+      settings: { recentEpisodes: 2 }, markerMode: 'edit',
+      'videos:youtube:abcdefghijk': { site: 'youtube', title: '交通議題影片 A', pageUrl: 'https://www.youtube.com/watch?v=abcdefghijk' },
       'markers:youtube:abcdefghijk': [marker('a1', 68, '開場'), marker('a2', 320, '交通政策')],
       'videos:tcc:123': { site: 'tcc', title: '預算影片 B', pageUrl: 'https://live.tcc.gov.tw/watch?vdvno=123' },
       'markers:tcc:123': [marker('b1', 190, '預算說明')],
@@ -27,8 +27,7 @@ const root = require('node:path').resolve(__dirname, '..');
       'markers:tcc:456': [marker('c1', 42, '待整理片段')],
       'episode:1': { id: '1', name: 'ep1', videoKeys: ['youtube:abcdefghijk'], createdAt: date, updatedAt: date },
       'episode:2': { id: '2', name: 'ep2', videoKeys: ['tcc:123'], createdAt: date, updatedAt: date },
-      'episode:11': { id: '11', name: 'ep11', videoKeys: ['youtube:abcdefghijk'], createdAt: date, updatedAt: date },
-      'order:2026-09-20': ['youtube:abcdefghijk']
+      'episode:11': { id: '11', name: 'ep11', videoKeys: ['youtube:abcdefghijk'], createdAt: date, updatedAt: date }
     };
     const listeners = [];
     const clone = value => structuredClone(value);
@@ -74,11 +73,6 @@ const root = require('node:path').resolve(__dirname, '..');
   await page.locator('#search').fill('ep11: t');
   assert.equal(await page.locator('#list .video').count(), 0);
   await page.locator('#search').fill('');
-  const migrated = await page.evaluate(() => window.__db);
-  assert.equal(migrated['videos:youtube:abcdefghijk'].pickedAt, undefined);
-  assert.equal(migrated['markers:youtube:abcdefghijk'][0].updatedAt, '2026-09-20T00:00:00.000Z');
-  assert.equal(migrated['order:2026-09-20'], undefined);
-  assert.equal(migrated.settings.recentDays, undefined);
   assert.equal(await page.locator('section[data-episode-id=""] .video').count(), 1);
   const videoGeometry = () => page.locator('section[data-episode-id="11"] .video').evaluate(node => {
     const rect = selector => { const box = node.querySelector(selector).getBoundingClientRect(); return { x: box.x, y: box.y, height: box.height, width: box.width }; };
@@ -245,7 +239,7 @@ const root = require('node:path').resolve(__dirname, '..');
   assert.equal(await page.locator('#importApply').isEnabled(), false);
   // A shared backend exercises actual Web Locks between two manage pages and popup.
   const sharedDb = {
-    libraryVersion: 2, settings: { recentEpisodes: 0 }, markerMode: 'edit',
+    settings: { recentEpisodes: 0 }, markerMode: 'edit',
     'episode:remembered': { id: 'remembered', name: 'ep21', videoKeys: [], createdAt: '2026-09-20T00:00:00.000Z', updatedAt: '2026-09-20T00:00:00.000Z' },
     'episode:concurrent': { id: 'concurrent', name: 'ep20', videoKeys: [], createdAt: '2026-09-20T00:00:00.000Z', updatedAt: '2026-09-20T00:00:00.000Z' },
     'videos:youtube:abcdefghijk': { site: 'youtube', title: 'shared video', pageUrl: 'https://www.youtube.com/watch?v=abcdefghijk' },
@@ -427,6 +421,6 @@ const root = require('node:path').resolve(__dirname, '..');
   assert.deepEqual(sharedDb['episode:search-102'].videoKeys, ['youtube:abcdefghijk']);
   await context.close();
   assert.deepEqual(errors, []);
-  console.log('PASS: browser migration, natural sorting, N limit, global search, create/rename, main-list selection, backlog batch, remembered Episode, sticky controls, shared edit, drag add/reorder, selection remove/undo, export/import, delete/undo, mobile overflow, concurrent manage pages and popup edit/save; no page errors');
+  console.log('PASS: natural sorting, N limit, global search, create/rename, main-list selection, backlog batch, remembered Episode, sticky controls, shared edit, drag add/reorder, selection remove/undo, export/import, delete/undo, mobile overflow, concurrent manage pages and popup edit/save; no page errors');
   await browser.close();
 })().catch(error => { console.error(error); process.exit(1); });
