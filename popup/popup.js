@@ -17,17 +17,26 @@ async function loadMarkers() {
   render();
 }
 
-async function persist() {
-  await chrome.storage.local.set({ [markersKey(state.videoKey)]: markers });
+async function updateStoredMarker(id, changes) {
+  await withStorageLock(async () => {
+    const key = markersKey(state.videoKey);
+    const stored = (await chrome.storage.local.get(key))[key] || [];
+    const marker = stored.find((item) => item.id === id);
+    if (!marker || !isLive(marker)) return;
+    Object.assign(marker, changes);
+    await chrome.storage.local.set({ [key]: stored });
+  });
+  await loadMarkers();
 }
 
-// Keep the title and URL so the manage page can list and export this video.
-// Other fields, such as pickedAt from the manage page, are kept.
+// Keep the title and URL while preserving any other metadata fields.
 async function saveVideoMeta() {
-  const key = videoMetaKey(state.videoKey);
-  const stored = (await chrome.storage.local.get(key))[key];
-  await chrome.storage.local.set({
-    [key]: { ...stored, site: state.site, title: state.pageTitle, pageUrl: state.pageUrl }
+  await withStorageLock(async () => {
+    const key = videoMetaKey(state.videoKey);
+    const stored = (await chrome.storage.local.get(key))[key];
+    await chrome.storage.local.set({
+      [key]: { ...stored, site: state.site, title: state.pageTitle, pageUrl: state.pageUrl }
+    });
   });
 }
 
@@ -52,11 +61,8 @@ function render() {
         time.value = formatTime(marker.time);
         return;
       }
-      marker.time = value;
-      marker.updatedAt = new Date().toISOString();
-      await persist();
-      markers.sort((a, b) => a.time - b.time);
-      render();
+      try { await updateStoredMarker(marker.id, { time: value, updatedAt: new Date().toISOString() }); }
+      catch (error) { showError(error.message); }
     });
 
     const note = document.createElement("input");
@@ -64,10 +70,8 @@ function render() {
     note.value = marker.note || "Marker";
     note.title = "編輯標題";
     note.addEventListener("change", async () => {
-      marker.note = note.value.trim() || "Marker";
-      marker.updatedAt = new Date().toISOString();
-      await persist();
-      note.value = marker.note;
+      try { await updateStoredMarker(marker.id, { note: note.value.trim() || "Marker", updatedAt: new Date().toISOString() }); }
+      catch (error) { showError(error.message); }
     });
 
     const cue = document.createElement("button");
@@ -99,9 +103,8 @@ function render() {
     remove.title = "刪除";
     remove.textContent = "×";
     remove.addEventListener("click", async () => {
-      marker.deletedAt = new Date().toISOString();
-      await persist();
-      render();
+      try { await updateStoredMarker(marker.id, { deletedAt: new Date().toISOString() }); }
+      catch (error) { showError(error.message); }
     });
 
     row.append(time, note, cue, play, remove);
@@ -170,21 +173,31 @@ $("goTime").addEventListener("keydown", (event) => {
 });
 
 $("save").addEventListener("click", async () => {
+  if ($("save").disabled) return;
+  $("save").disabled = true;
   try {
     // Read again at click time so the saved time is current, not popup-open time.
     const latest = await siteAdapter.getState(activeTab.id);
     if (!latest?.ok) throw new Error(latest?.error || "無法取得影片時間");
 
     const note = $("note").value.trim() || `Marker ${latest.formattedTime}`;
-    markers.push(newMarker(latest.currentTime, note));
     state = latest;
-    await persist();
-    await saveVideoMeta();
+    await withStorageLock(async () => {
+      const key = markersKey(state.videoKey);
+      const metaKey = videoMetaKey(state.videoKey);
+      const stored = await chrome.storage.local.get([key, metaKey]);
+      await chrome.storage.local.set({
+        [key]: [...(stored[key] || []), newMarker(latest.currentTime, note)],
+        [metaKey]: { ...stored[metaKey], site: state.site, title: state.pageTitle, pageUrl: state.pageUrl }
+      });
+    });
     $("currentTime").textContent = latest.formattedTime;
     $("note").value = "";
     await loadMarkers();
   } catch (error) {
     showError(error.message);
+  } finally {
+    $("save").disabled = false;
   }
 });
 
@@ -192,4 +205,18 @@ $("note").addEventListener("keydown", (event) => {
   if (event.key === "Enter") $("save").click();
 });
 
-init();
+let pendingMarkerRefresh = false;
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local" || !state || !changes[markersKey(state.videoKey)]) return;
+  if (document.activeElement?.matches("#markers input")) pendingMarkerRefresh = true;
+  else loadMarkers().catch((error) => showError(error.message));
+});
+$("markers").addEventListener("focusout", () => {
+  setTimeout(() => {
+    if (!pendingMarkerRefresh || document.activeElement?.matches("#markers input")) return;
+    pendingMarkerRefresh = false;
+    loadMarkers().catch((error) => showError(error.message));
+  });
+});
+
+init().catch((error) => showError(error.message));

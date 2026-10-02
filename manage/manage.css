@@ -41,9 +41,9 @@ details[open] > summary { margin-bottom: 8px; }
 .modes button:first-child { border-radius: 7px 0 0 7px; }
 .modes button:last-child { border-radius: 0 7px 7px 0; }
 .modes button.active { background: #0f172a; color: white; }
-.date-group { margin-top: 16px; }
-.date-group:first-child { margin-top: 0; }
-.date-heading {
+.episode-group { margin-top: 16px; }
+.episode-group:first-child { margin-top: 0; }
+.episode-heading {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -51,17 +51,16 @@ details[open] > summary { margin-bottom: 8px; }
   padding-bottom: 4px;
   border-bottom: 1px solid #e2e8f0;
 }
-.date { margin: 0; font-size: 14px; font-variant-numeric: tabular-nums; }
-.pick {
+.episode-name { margin: 0; font-size: 14px; font-variant-numeric: tabular-nums; }
+.small-button {
   flex: none;
-  margin-left: auto;
   padding: 3px 8px;
   border: 1px solid #cbd5e1;
   background: #fff;
   color: #334155;
   font-size: 12px;
 }
-.pick:hover { border-color: #2563eb; color: #2563eb; }
+.small-button:hover { border-color: #2563eb; color: #2563eb; }
 .video { margin: 0 0 10px 12px; }
 .video-heading { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
 /* Fixed width so titles line up whatever the site label. */
@@ -134,9 +133,9 @@ details[open] > summary { margin-bottom: 8px; }
 }
 .toast button { padding: 4px 10px; background: #fff; color: #0f172a; }
 
-.date-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 12px; }
-.date-row label { font-size: 13px; font-weight: 600; }
-input, textarea {
+.form-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 12px; }
+.form-row label { font-size: 13px; font-weight: 600; }
+input, textarea, select {
   padding: 8px;
   border: 1px solid #cbd5e1;
   border-radius: 7px;
@@ -162,3 +161,30 @@ button {
 .summary { margin: 12px 0 8px; font-size: 13px; line-height: 1.6; }
 .summary ul { margin: 4px 0; padding-left: 20px; }
 .summary .error { color: #b91c1c; }
+
+.episode-tools { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.episode-name { overflow-wrap: anywhere; }
+.group-count { color: #64748b; font-size: 12px; flex: none; }
+.group-actions, .video-actions { display: flex; gap: 6px; margin-left: auto; flex: none; }
+.episode-heading { flex-wrap: wrap; }
+.episode-group.drop-group { outline: 2px solid #2563eb; outline-offset: 4px; background: #eff6ff; }
+button:disabled { opacity: 0.5; cursor: default; }
+.error { color: #b91c1c; font-size: 13px; }
+.file-label { display: block; margin-bottom: 12px; font-size: 13px; }
+dialog { width: min(620px, calc(100vw - 32px)); max-height: 85vh; padding: 24px; border: 1px solid #cbd5e1; border-radius: 10px; color: inherit; }
+dialog::backdrop { background: rgb(15 23 42 / 35%); }
+dialog form > label { display: block; margin: 12px 0; font-size: 14px; }
+dialog label > input:not([type="checkbox"]), dialog label > select { width: 100%; margin-top: 6px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+#assignVideos { max-height: 40vh; overflow-y: auto; margin-top: 12px; }
+.assign-video { display: flex; align-items: flex-start; gap: 8px; padding: 8px; font-size: 14px; overflow-wrap: anywhere; }
+.assign-video input { flex: none; margin-top: 3px; }
+.toast { max-width: calc(100vw - 32px); width: max-content; z-index: 2; }
+@media (max-width: 700px) {
+  .list-tools { flex-wrap: wrap; }
+  #search { flex-basis: 100%; }
+  .video-heading { flex-wrap: wrap; }
+  .video-title { flex: 1; }
+  .video-actions { width: 100%; justify-content: flex-end; }
+  .group-actions { flex-wrap: wrap; }
+}

@@ -15,7 +15,7 @@
     <details class="card" open>
       <summary><h2>Marker</h2></summary>
       <div class="list-tools">
-        <input id="search" type="search" placeholder="搜尋日期、網站、影片標題、Marker 標題" autocomplete="off">
+        <input id="search" type="search" placeholder="搜尋 Episode、網站、影片標題、Marker 標題" autocomplete="off">
         <span class="modes-label" id="modesLabel">點選 Marker：</span>
         <div id="modes" class="modes" role="group" aria-labelledby="modesLabel">
           <button data-mode="cue" title="點選 Marker：跳至該時間並暫停">CUE</button>
@@ -23,49 +23,81 @@
           <button data-mode="edit" title="編輯或刪除 Marker">EDIT</button>
         </div>
       </div>
+      <div class="episode-tools"><button id="newEpisode" class="primary">＋ 新增 Episode</button><span class="muted">各 Episode 共用影片與全部 Marker</span></div>
       <div id="list"></div>
       <div id="listEmpty" class="empty hidden"></div>
       <div id="listHint" class="hint hidden"></div>
     </details>
 
-    <details class="card">
+    <details class="card" id="exportPanel">
       <summary><h2>匯出</h2></summary>
-      <p class="muted">依 Marker 的最後修改日篩選，產生純文字。</p>
-      <div class="date-row">
-        <label>從 <input id="exportFrom" type="date"></label>
-        <label>到 <input id="exportTo" type="date"></label>
+      <p class="muted">匯出 Episode 或 backlog 的全部 Marker 與影片順序。完整備份包含所有 Episode、影片、Marker 與設定。</p>
+      <div class="form-row">
+        <label>範圍 <select id="exportEpisode"></select></label>
         <button id="exportBuild" class="primary">產生</button>
       </div>
       <div id="exportResult" class="hidden">
         <div id="exportSummary" class="summary"></div>
-        <textarea id="exportText" readonly rows="12"></textarea>
+        <textarea id="exportText" readonly rows="12" aria-label="匯出內容"></textarea>
         <button id="exportCopy" class="primary">複製</button>
+        <button id="exportDownload">下載 JSON</button>
         <span id="exportCopied" class="muted hidden">已複製</span>
       </div>
     </details>
 
     <details class="card">
       <summary><h2>匯入</h2></summary>
-      <p class="muted">貼上匯出的文字。同一支影片會與現有 Marker 合併，時間與標題都相同的 Marker 會略過。</p>
-      <textarea id="importText" rows="12" placeholder="MPY Timecode Marker v1&#10;…"></textarea>
+      <p class="muted">貼上 v2 JSON 或舊版 v1 文字，也可選擇 JSON 檔案。先預覽，再確認匯入。</p>
+      <label class="file-label">選擇檔案 <input id="importFile" type="file" accept=".json,.txt,application/json,text/plain"></label>
+      <textarea id="importText" rows="12" placeholder="貼上匯出內容" aria-label="匯入內容"></textarea>
+      <div class="form-row" id="importTargetRow">
+        <label>目標 <select id="importTarget"></select></label>
+        <label id="importNameLabel" class="hidden">Episode 名稱 <input id="importName" maxlength="120"></label>
+      </div>
+      <div class="form-row">
+        <label>同一 Marker 內容衝突時
+          <select id="importConflict"><option value="local">保留本機內容</option><option value="incoming">採用匯入內容</option></select>
+        </label>
+      </div>
       <button id="importPreview" class="primary">預覽</button>
       <div id="importResult" class="hidden">
-        <div id="importSummary" class="summary"></div>
-        <button id="importApply" class="primary">匯入</button>
+        <div id="importSummary" class="summary" aria-live="polite"></div>
+        <button id="importApply" class="primary" disabled>確認匯入</button>
       </div>
     </details>
 
     <details class="card">
       <summary><h2>設定</h2></summary>
-      <label class="setting">未搜尋時顯示最近 <input id="recentDays" type="number" min="0" step="1"> 天的影片</label>
-      <p class="muted">依影片的最後修改日計算，包含今天。0 表示全部顯示。搜尋時不受此設定限制。</p>
+      <label class="setting">未搜尋時顯示最近 <input id="recentEpisodes" type="number" min="0" step="1"> 個 Episode</label>
+      <p class="muted">依 Episode 名稱自然排序，由大到小（ep11、ep2、ep1）。0 表示全部顯示。搜尋涵蓋全部 Episode 與 backlog，不受此設定限制；backlog 不計入數量。</p>
     </details>
   </main>
-  <div id="toast" class="toast hidden"><span id="toastText"></span><button id="toastAction" class="hidden"></button></div>
+  <dialog id="episodeDialog" aria-labelledby="episodeDialogTitle">
+    <form id="episodeForm">
+      <h2 id="episodeDialogTitle">新增 Episode</h2>
+      <label id="episodeNameLabel">名稱 <input id="episodeName" maxlength="120" autocomplete="off"></label>
+      <p id="episodeDeleteHint" class="muted hidden"></p>
+      <p id="episodeDialogError" class="error" role="alert"></p>
+      <div class="dialog-actions"><button type="button" data-close-dialog="episodeDialog">取消</button><button id="episodeSave" class="primary" type="submit">儲存</button></div>
+    </form>
+  </dialog>
+  <dialog id="assignDialog" aria-labelledby="assignTitle">
+    <form id="assignForm">
+      <h2 id="assignTitle">加入 Episode</h2>
+      <p class="muted">保留影片在其他 Episode 的歸屬，Marker 共用。</p>
+      <label>Episode <select id="assignEpisode"></select></label>
+      <label id="assignSearchLabel">搜尋所有影片 <input id="assignSearch" type="search" autocomplete="off"></label>
+      <div id="assignVideos"></div>
+      <p id="assignError" class="error" role="alert"></p>
+      <div class="dialog-actions"><button type="button" data-close-dialog="assignDialog">取消</button><button id="assignSave" class="primary" type="submit">加入</button></div>
+    </form>
+  </dialog>
+  <div id="toast" role="status" class="toast hidden"><span id="toastText"></span><button id="toastAction" class="hidden"></button></div>
   <script src="../lib/markers.js"></script>
   <script src="../sites/tcc.js"></script>
   <script src="../sites/youtube.js"></script>
   <script src="../lib/video-key.js"></script>
+  <script src="../lib/library.js"></script>
   <script src="manage.js"></script>
 </body>
 </html>

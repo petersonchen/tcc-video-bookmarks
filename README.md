@@ -15,7 +15,7 @@
 - Marker 依不同影片分開保存
 - 重新整理網頁後仍保留 Marker
 - Marker 僅儲存在使用者瀏覽器本機
-- 管理頁：依日期與影片列出所有 Marker，可搜尋、編輯、刪除，並可依最後修改日匯出、匯入 Marker
+- 管理頁：依 Episode 與影片列出 Marker，同一影片可加入多集，Marker 共用；支援搜尋、編輯、拖曳排序與匯入匯出
 - 未來可增加其他影音網站支援，不需要另外安裝 Extension
 
 ## 使用方式
@@ -29,28 +29,48 @@
 
 ## 管理頁
 
-在 popup 按「管理」開啟管理頁。
+在 popup 按「管理」開啟管理頁。清單依 **Episode → 影片 → Marker** 顯示，不收合各 Episode。
 
-- Marker 依影片分組，影片再依最後修改日分組，新的日期在上方。影片的最後修改日為該影片 Marker 中最新的修改日。
-- 影片標題前以標籤標示網站：TCC 或 YouTube。
-- 未搜尋時，只顯示最近 14 天內有修改的影片，天數可在「設定」修改，0 表示全部顯示。搜尋時會搜尋全部影片。
-- 搜尋框可輸入日期、影片標題、Marker 標題或 Timecode。以空白分隔多個詞時，每個詞都要符合。文字詞依字元順序比對，字元不必相連；只含數字與 `/`、`-`、`:` 的詞需完全相連，例如 `2026/09/30`、`01:20`。網站名稱的開頭（至少兩個字元，例如 `yout`、`tcc`）或 `yt` 會符合該網站的所有影片。
-- 「點選 Marker」可切換 **CUE**、**PLAY**、**EDIT** 三種模式，預設為 **PLAY**，會記住上次選擇。
-  - **CUE**／**PLAY**：點選 Marker 會切換到該影片的分頁並跳至該時間，CUE 暫停、PLAY 播放；影片沒有開啟時會開新分頁，等播放器載入後再跳轉。YouTube 會等廣告結束。
-  - **EDIT**：可直接修改 Timecode 與標題，修改後該 Marker 的最後修改日更新為當天。按 × 刪除 Marker 後，可在畫面下方按「復原」，僅能復原最近一次刪除。未搜尋時，可按住影片標題左側的 ⋮⋮ 拖拉，調整同一天的影片順序；之後新加入該日期的影片排在最後。順序只存在本機，不會匯出。
-- 在新開的分頁使用 **PLAY** 時，瀏覽器的自動播放政策可能阻擋播放，是否阻擋取決於使用者過去與該網站的互動。被阻擋時影片會停在該時間，需在影片上按播放。
-- Marker、匯出、匯入、設定各區塊可按標題收合。匯出、匯入、設定預設收合。
+- 按「＋ 新增 Episode」建立空的 Episode，例如 `ep1`、`ep2`；可改名或刪除。名稱去除前後空白，不區分大小寫，不能重名；`backlog` 是保留名稱。Episode 使用固定 ID，改名不影響影片歸屬。
+- Episode 依名稱自然排序，由大到小，例如 `ep12`、`ep11`、`ep2`、`ep1`；「最近」表示名稱排序，不是建立或修改日期。
+- 未搜尋時預設顯示最近 10 個 Episode，可在設定調整數量，0 表示全部。搜尋涵蓋全部 Episode 與 backlog，不受設定限制。
+- **backlog** 固定在最下面，不計入 Episode 顯示數量，僅顯示未加入任何 Episode 的影片，依 Marker 的最後修改時間由新到舊排列。尚未歸屬的新影片自動進入 backlog；未顯示的舊 Episode 仍算歸屬。
+- 每支影片只有一份 Marker。加入 ep1、ep2 時，兩集都顯示全部 Marker；編輯或刪除會反映到所有 Episode。
+- Episode 的「加入影片」可搜尋所有已儲存且有未刪除 Marker 的影片，包括其他 Episode 的影片。同一影片不會重複加入同一 Episode。
+- 「點選 Marker」有 **CUE**、**PLAY**、**EDIT** 模式，預設 PLAY，會記住選擇。
+  - **CUE／PLAY**：點選 Marker 切換到影片分頁並跳至該時間；CUE 暫停，PLAY 播放。未開啟的影片會開新分頁，等播放器載入後跳轉；YouTube 會等廣告結束。
+  - **EDIT**：修改 Timecode 或標題會更新 Marker 的最後修改時間，建立時間保留。按 × 刪除 Marker，可在 8 秒內復原最近一次刪除。
+  - 未搜尋時，可拖影片標題左側的 ⋮⋮ 調整同一 Episode 的影片順序；從 backlog 或其他 Episode 拖到目標 Episode，表示「加入」，保留其他 Episode 的歸屬。各 Episode 的影片順序互相獨立。
+  - 影片的「加入 Episode」可選擇其他 Episode；「移除」只移除目前 Episode 的歸屬。沒有其他歸屬的影片回到 backlog。加入、移除或刪除 Episode 後可在 8 秒內復原最近一次操作，影片與 Marker 會保留。
+- 搜尋可輸入 Episode 名稱、網站、影片標題、Marker 標題或 Timecode。以空白分隔多個詞時，每個詞都要符合。文字依字元順序比對，字元不必相連；只含數字與 `/`、`-`、`:` 的詞需完全相連。網站名稱的開頭（至少兩個字元，例如 `yout`、`tcc`）或 `yt` 會符合該網站。搜尋時不提供拖曳。
+- Marker、匯出、匯入、設定區塊可按標題收合；匯出、匯入、設定預設收合。Episode 本身不收合。
+- 在新開分頁 PLAY 時，瀏覽器可能阻擋自動播放，此時影片停在指定時間，需在影片上按播放。
+
+### 舊資料轉換
+
+首次開啟新版管理頁，現有影片不會依日期建立 Episode；未加入 Episode 的影片全部出現在 backlog。Marker 的建立與最後修改時間保持原值，舊的日期排序、最近天數設定及 `pickedAt` 移除。「移到今天」由加入 Episode 取代，整理歸屬或排序不會更改 Marker 時間。
 
 ## 匯出與匯入
 
-Marker 只存在各自的瀏覽器中。匯出與匯入用文字在不同瀏覽器之間傳遞 Marker。
+資料只存在各自的瀏覽器中。新版使用 **v2 JSON** 在瀏覽器間傳遞資料，可複製或下載檔案。
 
-1. 在管理頁的「匯出」選擇日期範圍，按「產生」後按「複製」。日期依 Marker 的最後修改日篩選，前後日期都包含。
-2. 在另一個瀏覽器開啟管理頁，將文字貼到「匯入」，按「預覽」確認內容後按「匯入」。
+- **Episode 匯出**：選擇 Episode，或按清單標題旁的「匯出」。包含名稱、影片順序、全部未刪除 Marker，以及 Marker ID、建立與修改時間。即使 Episode 是空的，也可以匯出。
+- **backlog 匯出**：包含所有未歸屬影片與未刪除 Marker。
+- **完整備份**：包含所有有效 Episode、影片、Marker（含已刪除項目）、共用關係、影片順序與設定。Episode 沒有未刪除 Marker 的成員以及只有影片資訊的資料也會保存。
 
-匯出文字格式如下，人可以直接閱讀：
+匯入時貼上內容或選擇檔案，再按「預覽」：
 
-```
+1. Episode 匯出預設建立新 Episode，名稱可修改，也可改為加入既有 Episode。名稱重複時需改名或選擇既有 Episode，不會只憑名稱自動合併。
+2. backlog 或舊版內容可指定 Episode，或選擇「不指定 Episode」。未指定不會移除既有歸屬，因此只有未歸屬影片出現在 backlog。
+3. 相同影片依 videoKey／網址合併；相同 Marker ID 不重複新增。ID 相同但內容不同時，預覽列出衝突，預設保留本機內容，也可選擇採用匯入內容，變更會影響所有 Episode。
+4. 一般匯入的時間與標題完全相同的 Marker 會略過；與本機已刪除項目重複的內容不會自動復活。完整備份保留不同 ID 的 Marker，包括內容相同的個別項目。
+5. 即使沒有新 Marker，也可透過匯入建立 Episode 或加入影片關係。
+6. 完整備份依 Episode ID 合併，相同 ID 保留本機名稱及原有影片順序，再接上新的影片；不同 ID 的同名 Episode 加上編號。備份會恢復顯示數量與 CUE／PLAY／EDIT 設定，保留本機其他資料。要完整重建備份的原始狀態，可匯入至空白的擴充功能資料庫。
+7. 若預覽後資料有變更，會更新預覽並要求再次確認，不會直接套用過時資料。
+
+仍支援原本的 **MPY Timecode Marker v1** 純文字格式。v1 沒有 Marker ID 和日期，新的 Marker 以匯入當下作為建立與修改時間；時間與標題完全相同的項目略過，不會重新加入已刪除項目。
+
+```text
 MPY Timecode Marker v1
 匯出：2026-09-21 ~ 2026-09-22，1 支影片，2 個 Marker
 
@@ -60,11 +80,21 @@ https://www.youtube.com/watch?v=dQw4w9WgXcQ
 00:02:20 第二段
 ```
 
-- 匯入時，同一支影片的 Marker 會與現有 Marker 合併；時間與標題都相同的 Marker 會略過。
-- 已刪除的 Marker 不會出現在匯出文字中，也不會從對方電腦刪除。
-- 匯入時，與已刪除 Marker 時間及標題都相同的 Marker 也會略過，不會重新加回。
-- 匯出文字不含時間資訊。匯入的 Marker 以匯入當下的時間作為建立與最後修改時間。
-- 影片依網址辨識，所以匯出的影片需要有網址。在影片頁開啟一次 popup 後，就會記錄該影片的標題與網址。
+## 開發驗證
+
+核心資料模型與匯入匯出測試不需要額外套件：
+
+```sh
+node --test tests/library.test.cjs
+```
+
+已安裝 Playwright 與 Chrome 的環境，也可執行介面測試（使用獨立瀏覽器設定檔與模擬 storage）：
+
+```sh
+node tests/manage.browser.cjs
+```
+
+可用 `PLAYWRIGHT_MODULE` 指定 Playwright 模組路徑，或用 `CHROME_EXECUTABLE` 指定瀏覽器執行檔。測試涵蓋管理頁操作，以及兩個管理頁和 popup 同時寫入。
 
 ## 目前支援網站
 
@@ -89,7 +119,8 @@ https://www.youtube.com/watch?v=dQw4w9WgXcQ
 
 - `popup/popup.js`：共用 Marker UI、儲存與操作流程
 - `manage/manage.js`：管理頁，Marker 清單、搜尋、編輯與匯出、匯入
-- `lib/markers.js`：popup 與管理頁共用的 Timecode 格式與 storage 函式
+- `lib/markers.js`：popup 與管理頁共用的 Timecode 格式與 storage 寫入鎖
+- `lib/library.js`：Episode 歸屬、自然排序、backlog 與 v2／v1 匯入匯出
 - `lib/video-key.js`：由影片網址決定 Marker 的儲存 key，content script 與管理頁共用
 - `sites/tcc.js`：臺北市議會網站判斷，以及 Video.js 的 CUE / PLAY 控制
 - `sites/youtube.js`：YouTube 網站判斷，以及 YouTube player API 的 CUE / PLAY 控制
