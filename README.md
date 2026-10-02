@@ -159,6 +159,7 @@ node tests/manage.browser.cjs
 
 - `popup/popup.js`：共用 Marker UI、儲存與操作流程
 - `background.js`：鍵盤快捷鍵，不開 popup 直接儲存 Marker
+- `icons/`：工具列與擴充功能頁圖示。`icon.svg` 是 32px 以上的原始檔，`icon-16.svg` 是 16px 的簡化版；修改後需重新輸出對應尺寸的 PNG
 - `manage/common.js`：管理頁共用的 helper、toast 與 storage 寫入
 - `manage/list.js`：管理頁的 Episode 清單、搜尋、拖拉與 Marker 編輯
 - `manage/dialogs.js`：選取工具列，以及 Episode、加入、移除對話框
