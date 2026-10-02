@@ -40,6 +40,16 @@ $("cueLead").addEventListener("change", () => run(async () => {
 
 $("reuseTab").addEventListener("change", () => run(() => updateSettings({ reuseTab: $("reuseTab").checked })));
 
+// The save shortcut is set in the browser and can change, so read it.
+async function loadSaveShortcut() {
+  const command = (await chrome.commands.getAll()).find((item) => item.name === "save-marker");
+  $("saveShortcut").textContent = command?.shortcut || "未設定";
+}
+
+$("editShortcuts").addEventListener("click", () => run(() => chrome.tabs.create({
+  url: navigator.userAgent.includes("Edg/") ? "edge://extensions/shortcuts" : "chrome://extensions/shortcuts"
+})));
+
 // What clicking a marker does: "cue", "play", or "edit". Stored apart from the
 // settings section since it changes often.
 let markerMode = "play";
@@ -83,6 +93,7 @@ chrome.storage.onChanged.addListener((changes, area) => run(async () => {
 
 $("version").textContent = `v${chrome.runtime.getManifest().version}`;
 
+loadSaveShortcut().catch(() => {});
 Promise.all([loadSettings(), loadMarkerMode()]).then(refreshList)
   .catch((error) => showToast(`無法載入：${error.message}`));
 

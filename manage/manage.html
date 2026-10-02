@@ -94,6 +94,38 @@
       <label class="setting"><input id="reuseTab" type="checkbox"> CUE／PLAY 固定使用同一個分頁</label>
       <p class="muted">開啟時，管理頁的 CUE／PLAY 都在同一個分頁播放，點選其他影片會在該分頁換成新影片。關閉時，影片已開啟就切換到該分頁，否則開新分頁。</p>
     </details>
+
+    <details class="card">
+      <summary><h2>快捷鍵</h2></summary>
+      <h3>微調 Marker 秒數</h3>
+      <ol class="steps">
+        <li>將模式切換為 <strong>EDIT</strong>，點選要調整的 Marker 的 Timecode。</li>
+        <li>按 <kbd>↑</kbd> 或 <kbd>↓</kbd> 加減 1 秒。</li>
+        <li>按 <kbd>Shift</kbd>+<kbd>Enter</kbd> 儲存，並在背景分頁從該時間播放；畫面留在管理頁，游標仍在 Timecode 欄位。</li>
+        <li>邊聽邊重複步驟 2、3，直到時間正確。</li>
+        <li>按 <kbd>Enter</kbd> 或點選其他地方結束編輯。</li>
+      </ol>
+
+      <h3>影片頁</h3>
+      <table class="shortcuts">
+        <tr><td><kbd id="saveShortcut">未設定</kbd></td><td>不開 popup，直接將目前位置儲存為 Marker <button id="editShortcuts" type="button" class="small-button">修改快捷鍵</button></td></tr>
+      </table>
+
+      <h3>管理頁 EDIT 模式</h3>
+      <table class="shortcuts">
+        <tr><td><kbd>↑</kbd>／<kbd>↓</kbd></td><td>在 Timecode 欄位加減 1 秒，尚未儲存</td></tr>
+        <tr><td><kbd>Enter</kbd></td><td>儲存並結束編輯</td></tr>
+        <tr><td><kbd>Shift</kbd>+<kbd>Enter</kbd></td><td>在 Timecode 欄位儲存，並在背景分頁播放；游標留在欄位中</td></tr>
+        <tr><td><kbd>Shift</kbd>+點選 ▶</td><td>在背景分頁從該 Marker 播放</td></tr>
+      </table>
+
+      <h3>popup</h3>
+      <table class="shortcuts">
+        <tr><td><kbd>Enter</kbd>（Marker 說明）</td><td>儲存目前位置</td></tr>
+        <tr><td><kbd>Enter</kbd>（跳到時間）</td><td>跳到該時間並播放</td></tr>
+        <tr><td><kbd>↑</kbd>／<kbd>↓</kbd>（Marker 的 Timecode）</td><td>加減 1 秒，按 <kbd>Enter</kbd> 儲存</td></tr>
+      </table>
+    </details>
   </main>
   <dialog id="episodeDialog" aria-labelledby="episodeDialogTitle">
     <form id="episodeForm">

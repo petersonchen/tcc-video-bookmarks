@@ -35,6 +35,13 @@ details[open] > summary { margin-bottom: 8px; }
 .setting { display: block; margin-bottom: 6px; font-size: 14px; }
 .setting input { width: 72px; margin: 0 4px; text-align: right; }
 .setting input[type="checkbox"] { width: auto; margin: 0 6px 0 0; }
+.card h3 { margin: 16px 0 6px; font-size: 14px; }
+.steps { margin: 0; padding-left: 22px; font-size: 13px; line-height: 1.9; }
+.shortcuts { border-collapse: collapse; font-size: 13px; }
+.shortcuts td { padding: 4px 16px 4px 0; vertical-align: middle; }
+/* One first-column width so the three tables line up. */
+.shortcuts td:first-child { width: 240px; white-space: nowrap; }
+kbd { display: inline-block; min-width: 20px; padding: 1px 6px; border: 1px solid #cbd5e1; border-bottom-width: 2px; border-radius: 4px; background: #fff; font: inherit; font-size: 12px; text-align: center; }
 
 .marker-toolbar { position: sticky; top: 0; z-index: 10; padding: 16px; margin-bottom: 16px; border-radius: 8px; background: #fff; box-shadow: 0 2px 8px rgb(15 23 42 / 8%); }
 .list-tools { display: flex; gap: 8px; }
