@@ -292,3 +292,9 @@ test('CUE lead accepts whole seconds up to 60 and never seeks before zero', () =
   const backup = library.exportData({ ...seed(), settings: { cueLead: 99 } }, null, true);
   assert.equal(library.parse(JSON.stringify(backup)).settings.cueLead, undefined);
 });
+
+test('Default notes are the empty, plain, and auto-filled Marker notes', () => {
+  const isDefault = vm.runInContext('isDefaultNote', context);
+  for (const note of ['', undefined, 'Marker', 'Marker 00:09:53']) assert.equal(isDefault(note), true, note);
+  for (const note of ['開場', 'Marker 9:53', 'Marker 00:09:53 交通']) assert.equal(isDefault(note), false, note);
+});
