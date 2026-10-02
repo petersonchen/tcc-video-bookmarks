@@ -23,7 +23,8 @@ function videoSite(videoKey, meta) {
 }
 
 // Videos with their live markers. A video's date is the latest update among
-// those markers, and the list groups videos by that date.
+// those markers or the time it was moved to a date with "移到今天" (pickedAt),
+// and the list groups videos by that date.
 async function loadVideos() {
   const all = await chrome.storage.local.get(null);
   return Object.keys(all)
@@ -38,7 +39,7 @@ async function loadVideos() {
         title: meta.title || videoKey,
         pageUrl: meta.pageUrl || "",
         markers,
-        lastUpdated: markers.map(markerUpdatedAt).sort().at(-1)
+        lastUpdated: [...markers.map(markerUpdatedAt), meta.pickedAt].filter(Boolean).sort().at(-1)
       };
     })
     .filter((video) => video.markers.length)
@@ -183,12 +184,23 @@ function renderList() {
 
   // A filtered list hides some videos of a date, so reordering waits for no search.
   const canDrag = markerMode === "edit" && terms.length === 0;
+  const today = localDate(Date.now());
   const list = $("list");
   list.textContent = "";
   [...groups.keys()].sort().reverse().forEach((date) => {
     const group = element("section", "date-group");
-    group.append(element("h3", "date", displayDate(date)));
-    sortByOrder(date, groups.get(date)).forEach((video) => group.append(renderVideo(video, date, canDrag)));
+    const dateVideos = sortByOrder(date, groups.get(date));
+    const heading = element("div", "date-heading");
+    heading.append(element("h3", "date", displayDate(date)));
+    // A filtered date shows only some of its videos, so "all" waits for no search.
+    if (canDrag && date !== today) {
+      const pickAll = element("button", "pick", "全部移到今天");
+      pickAll.title = "把這天的所有影片移到今天";
+      pickAll.addEventListener("click", () => pickToToday(dateVideos.map((video) => video.videoKey)));
+      heading.append(pickAll);
+    }
+    group.append(heading);
+    dateVideos.forEach((video) => group.append(renderVideo(video, date, canDrag, date !== today)));
     list.append(group);
   });
 
@@ -200,7 +212,7 @@ function renderList() {
   $("listHint").classList.toggle("hidden", hiddenVideos === 0);
 }
 
-function renderVideo(video, date, canDrag) {
+function renderVideo(video, date, canDrag, canPick) {
   const block = element("div", "video");
   block.dataset.videoKey = video.videoKey;
   const heading = element("div", "video-heading");
@@ -220,6 +232,12 @@ function renderVideo(video, date, canDrag) {
     handle.title = "拖拉調整同一天的影片順序";
     heading.prepend(handle);
     enableDrag(block, handle, date);
+  }
+  if (markerMode === "edit" && canPick) {
+    const pick = element("button", "pick", "移到今天");
+    pick.title = "把這支影片移到今天";
+    pick.addEventListener("click", () => pickToToday([video.videoKey]));
+    heading.append(pick);
   }
   block.append(heading);
   video.markers.forEach((marker) => block.append(renderMarker(video, marker)));
@@ -335,6 +353,34 @@ function showToast(text, actionLabel, onAction) {
   $("toast").classList.remove("hidden");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(hideToast, 8000);
+}
+
+// Moves videos to today by setting pickedAt, which does not touch marker
+// updatedAt, so export still goes by when markers were changed. The videos
+// join the end of today's order, keeping their order among themselves.
+async function pickToToday(videoKeys) {
+  const today = localDate(Date.now());
+  const orderKey = `order:${today}`;
+  const metaKeys = videoKeys.map(videoMetaKey);
+  const before = await chrome.storage.local.get([...metaKeys, orderKey]);
+
+  const todayKeys = sortByOrder(today, videos.filter((video) => localDate(video.lastUpdated) === today))
+    .map((video) => video.videoKey)
+    .filter((key) => !videoKeys.includes(key));
+  const now = new Date().toISOString();
+  const updates = { [orderKey]: [...todayKeys, ...videoKeys] };
+  videoKeys.forEach((key) => {
+    updates[videoMetaKey(key)] = { ...before[videoMetaKey(key)], pickedAt: now };
+  });
+  await chrome.storage.local.set(updates);
+
+  showToast(videoKeys.length > 1 ? `已將 ${videoKeys.length} 支影片移到今天` : "已移到今天", "復原", async () => {
+    const restore = Object.fromEntries(metaKeys.filter((key) => before[key]).map((key) => [key, before[key]]));
+    await chrome.storage.local.set(restore);
+    await chrome.storage.local.remove(metaKeys.filter((key) => !before[key]));
+    if (before[orderKey]) await chrome.storage.local.set({ [orderKey]: before[orderKey] });
+    else await chrome.storage.local.remove(orderKey);
+  });
 }
 
 // Only the latest deletion can be undone.

@@ -22,9 +22,12 @@ async function persist() {
 }
 
 // Keep the title and URL so the manage page can list and export this video.
+// Other fields, such as pickedAt from the manage page, are kept.
 async function saveVideoMeta() {
+  const key = videoMetaKey(state.videoKey);
+  const stored = (await chrome.storage.local.get(key))[key];
   await chrome.storage.local.set({
-    [videoMetaKey(state.videoKey)]: { site: state.site, title: state.pageTitle, pageUrl: state.pageUrl }
+    [key]: { ...stored, site: state.site, title: state.pageTitle, pageUrl: state.pageUrl }
   });
 }
 

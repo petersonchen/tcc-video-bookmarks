@@ -43,13 +43,25 @@ details[open] > summary { margin-bottom: 8px; }
 .modes button.active { background: #0f172a; color: white; }
 .date-group { margin-top: 16px; }
 .date-group:first-child { margin-top: 0; }
-.date {
+.date-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0 0 6px;
   padding-bottom: 4px;
   border-bottom: 1px solid #e2e8f0;
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
 }
+.date { margin: 0; font-size: 14px; font-variant-numeric: tabular-nums; }
+.pick {
+  flex: none;
+  margin-left: auto;
+  padding: 3px 8px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  font-size: 12px;
+}
+.pick:hover { border-color: #2563eb; color: #2563eb; }
 .video { margin: 0 0 10px 12px; }
 .video-heading { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
 /* Fixed width so titles line up whatever the site label. */
