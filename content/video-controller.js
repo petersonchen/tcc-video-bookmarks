@@ -56,10 +56,6 @@
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type !== "GET_VIDEO_STATE") return;
 
-    const state = videoState();
-    // The script runs in every frame. Frames without a video stay silent so
-    // they do not answer before the frame that has the player.
-    if (!state.ok && window !== window.top) return;
-    sendResponse(state);
+    sendResponse(videoState());
   });
 })();
