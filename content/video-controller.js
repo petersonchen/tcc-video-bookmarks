@@ -7,26 +7,10 @@
     return videos.find((video) => Number.isFinite(video.duration) && video.duration > 0) || videos[0] || null;
   }
 
-  function stablePageUrl() {
-    const url = new URL(location.href);
-    url.hash = "";
-
-    // Remove common volatile playback/session parameters while retaining
-    // parameters that identify the actual TCC video page.
-    const volatile = /^(token|auth|signature|sig|expires?|timestamp|ts|session|cache|_)/i;
-    [...url.searchParams.keys()].forEach((key) => {
-      if (volatile.test(key)) url.searchParams.delete(key);
-    });
-
-    // URLSearchParams order can vary; sorting keeps the marker key stable.
-    url.searchParams.sort();
-    return url.href;
-  }
-
   function tccIdentity(video) {
     // Do NOT use currentSrc as the primary key. Streaming URLs can contain
     // temporary tokens and change after every page reload.
-    const pageUrl = stablePageUrl();
+    const pageUrl = stableTccUrl(new URL(location.href));
     return {
       videoKey: videoKeyFromUrl(pageUrl),
       pageUrl,

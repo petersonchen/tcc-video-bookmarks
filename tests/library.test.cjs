@@ -236,3 +236,20 @@ test('Trailing colon scopes an exact Episode name, without matching Marker text'
   assert.equal(library.matchEpisodeTerm('ep1 extra', 'ep1:'), false);
   assert.equal(library.matchEpisodeTerm('ep1', '00:'), null);
 });
+
+test('Timecodes reject empty fields instead of reading them as zero', () => {
+  const parse = vm.runInContext('parseTimecode', context);
+  for (const text of ['', '  ', ':', '1::2', '1:', ':30']) assert.equal(parse(text), null, text);
+  assert.equal(parse('01:02:03'), 3723);
+  assert.equal(parse('2:05'), 125);
+  assert.equal(parse('45'), 45);
+});
+
+test('Video keys accept HTTPS only and normalize TCC pages without a video ID', () => {
+  const keyOf = vm.runInContext('videoKeyFromUrl', context);
+  assert.equal(keyOf('http://www.youtube.com/watch?v=abcdefghijk'), null);
+  assert.equal(keyOf('https://www.youtube.com/watch?v=abcdefghijk'), videoKey);
+  const stable = keyOf('https://live.tcc.gov.tw/Page.aspx?b=2&a=1');
+  assert.equal(keyOf('https://live.tcc.gov.tw/Page.aspx?token=x&a=1&b=2#t=5'), stable);
+  assert.equal(keyOf(stable.slice(5)), stable);
+});

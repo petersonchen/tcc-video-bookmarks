@@ -26,7 +26,7 @@ async function updateStoredMarker(id, changes) {
     Object.assign(marker, changes);
     await chrome.storage.local.set({ [key]: stored });
   });
-  await loadMarkers();
+  // The storage.onChanged listener reloads the list once focus leaves the inputs.
 }
 
 // Keep the title and URL while preserving any other metadata fields.
@@ -159,7 +159,7 @@ $("goPlay").addEventListener("click", async () => {
     await playAtTime(target);
     window.close();
   } catch {
-    showError("無法控制 Video.js 播放器。");
+    showError("無法控制影片播放器。");
   }
 });
 

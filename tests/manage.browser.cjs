@@ -308,6 +308,9 @@ const root = require('node:path').resolve(__dirname, '..');
   await first.evaluate(() => changeMarker('youtube:abcdefghijk', 'shared', { note: 'managed edit', updatedAt: new Date().toISOString() }));
   await popup.locator('#markers .marker-time').fill('00:01:10');
   await popup.locator('#markers .marker-time').press('Tab');
+  // Moving between fields keeps focus; the list refreshes once focus leaves it.
+  await popup.waitForFunction(() => document.activeElement?.matches('#markers .marker-note'));
+  await popup.locator('#note').focus();
   await popup.waitForFunction(() => document.querySelector('#markers .marker-edit:not(.marker-time)').value === 'managed edit');
   assert.equal(sharedDb['markers:youtube:abcdefghijk'][0].note, 'managed edit');
   assert.equal(sharedDb['markers:youtube:abcdefghijk'][0].time, 70);
