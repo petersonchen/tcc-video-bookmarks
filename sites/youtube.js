@@ -38,12 +38,33 @@ window.SiteAdapters.push({
     return chrome.scripting.executeScript({
       target: { tabId },
       world: "MAIN",
-      func: (time) => {
+      // Pausing once is not enough: a newly loaded page autoplays after the
+      // player reports ready, seekTo starts an unstarted player, and the video
+      // resumes on its own after an ad, including a second ad in a row.
+      // Keep pausing until the player has stayed in the paused state for a second;
+      // unstarted, buffering, and cued do not count, since autoplay may still follow.
+      func: async (time) => {
         const player = document.getElementById("movie_player");
         if (!player?.seekTo) throw new Error("YouTube player not found");
-        // seekTo keeps a paused player paused, so pause first.
+        const PLAYING = 1, PAUSED = 2, STEP_MS = 200, SETTLE_STEPS = 5, WATCH_MS = 5000, MAX_MS = 90000;
         player.pauseVideo();
         player.seekTo(time, true);
+        const start = Date.now();
+        let deadline = start + WATCH_MS, settled = 0;
+        while (settled < SETTLE_STEPS && Date.now() < Math.min(deadline, start + MAX_MS)) {
+          await new Promise((resolve) => setTimeout(resolve, STEP_MS));
+          if (player.classList.contains("ad-showing")) {
+            settled = 0;
+            deadline = Date.now() + WATCH_MS;
+            continue;
+          }
+          const state = player.getPlayerState();
+          if (state === PLAYING) {
+            player.pauseVideo();
+            if (Math.abs(player.getCurrentTime() - time) > 2) player.seekTo(time, true);
+          }
+          settled = state === PAUSED ? settled + 1 : 0;
+        }
       },
       args: [target]
     });
