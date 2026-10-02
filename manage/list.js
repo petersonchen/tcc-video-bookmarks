@@ -64,6 +64,7 @@ function renderList() {
     })).filter((video) => video.markers.length)
   })).filter(({ episode, groupVideos }) => !terms.length || groupVideos.length ||
     terms.every((term) => Library.matchEpisodeTerm(episode.name, term) ?? termMatches(episode.name.toLowerCase(), term)));
+  renderStats(terms, allEpisodes, matched);
   let budget = listLimit;
   let hiddenVideos = 0;
   let hiddenGroups = 0;
@@ -110,6 +111,27 @@ function renderList() {
   $("listMore").classList.toggle("hidden", !hiddenVideos && !hiddenGroups);
   for (const key of selectedRows.keys()) if (!visibleRows.has(key)) selectedRows.delete(key);
   updateSelection();
+}
+
+// Counts come from data already in memory, so they cover the whole library
+// even when only part of the list is rendered.
+function renderStats(terms, allEpisodes, matched) {
+  const markerCount = (list) => list.reduce((sum, video) => sum + video.markers.length, 0);
+  const total = `${videos.length} 支影片、${markerCount(videos)} 個 Marker、${allEpisodes.length} 個 Episode`;
+  if (!terms.length) {
+    $("listStats").textContent = `共 ${total}`;
+    return;
+  }
+  // A video in several Episodes appears in each group but is counted once.
+  const matchedVideos = new Map();
+  matched.forEach(({ groupVideos }) => groupVideos.forEach((video) => {
+    const markers = matchedVideos.get(video.videoKey) || new Set();
+    video.markers.forEach((marker) => markers.add(marker.id));
+    matchedVideos.set(video.videoKey, markers);
+  }));
+  const matchedMarkers = [...matchedVideos.values()].reduce((sum, markers) => sum + markers.size, 0);
+  const matchedEpisodes = matched.filter(({ episode }) => episode.id).length;
+  $("listStats").textContent = `符合 ${matchedVideos.size} 支影片、${matchedMarkers} 個 Marker、${matchedEpisodes} 個 Episode（共 ${total}）`;
 }
 
 function renderVideo(video, episodeId, canDrag) {

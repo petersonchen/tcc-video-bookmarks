@@ -57,6 +57,7 @@ const root = require('node:path').resolve(__dirname, '..');
   await page.goto('http://localhost:8765/manage/manage.html');
   await page.waitForFunction(() => document.querySelectorAll('.episode-name').length === 3);
   assert.deepEqual(await page.locator('#list .episode-name').allTextContents(), ['ep11:', 'ep2:', 'backlog:']);
+  assert.equal(await page.locator('#listStats').textContent(), '共 3 支影片、4 個 Marker、3 個 Episode');
   assert.equal(await page.locator('.marker-preview').count(), await page.locator('.marker-editable').count());
   await page.evaluate(() => {
     window.__originalSeek = seekMarker;
@@ -67,7 +68,12 @@ const root = require('node:path').resolve(__dirname, '..');
   await page.evaluate(() => { seekMarker = window.__originalSeek; });
   await page.locator('#search').fill('ep2: t');
   assert.deepEqual(await page.locator('#list .episode-name').allTextContents(), ['ep2:']);
+  assert.equal(await page.locator('#listStats').textContent(), '符合 1 支影片、1 個 Marker、1 個 Episode（共 3 支影片、4 個 Marker、3 個 Episode）');
   assert.equal(await page.locator('#list .video').count(), 1);
+  // A video shared by two Episodes is counted once.
+  await page.locator('#search').fill('開場');
+  assert.equal(await page.locator('#list .video').count(), 2);
+  assert.equal(await page.locator('#listStats').textContent(), '符合 1 支影片、1 個 Marker、2 個 Episode（共 3 支影片、4 個 Marker、3 個 Episode）');
   await page.locator('#search').fill('ep11: y');
   assert.equal(await page.locator('#list .video').count(), 1);
   await page.locator('#search').fill('ep11: t');
@@ -435,6 +441,6 @@ const root = require('node:path').resolve(__dirname, '..');
   assert.deepEqual(sharedDb['episode:search-102'].videoKeys, ['youtube:abcdefghijk']);
   await context.close();
   assert.deepEqual(errors, []);
-  console.log('PASS: natural sorting, N limit, global search, create/rename, main-list selection, backlog batch, remembered Episode, sticky controls, shared edit, drag add/reorder, selection remove/undo, export/import, delete/undo, mobile overflow, concurrent manage pages and popup edit/save, paged list; no page errors');
+  console.log('PASS: natural sorting, N limit, global search, create/rename, main-list selection, backlog batch, remembered Episode, sticky controls, shared edit, drag add/reorder, selection remove/undo, export/import, delete/undo, mobile overflow, concurrent manage pages and popup edit/save, paged list, list stats; no page errors');
   await browser.close();
 })().catch(error => { console.error(error); process.exit(1); });

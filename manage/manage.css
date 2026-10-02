@@ -37,6 +37,7 @@ details[open] > summary { margin-bottom: 8px; }
 
 .marker-toolbar { position: sticky; top: 0; z-index: 10; padding: 16px; margin-bottom: 16px; border-radius: 8px; background: #fff; box-shadow: 0 2px 8px rgb(15 23 42 / 8%); }
 .list-tools { display: flex; gap: 8px; }
+.list-stats { margin-top: 8px; }
 .edit-selection { display: flex; align-items: center; flex: 1; flex-wrap: wrap; gap: 16px; min-width: 0; }
 .library-heading { min-height: 44px; position: sticky; top: var(--toolbar-height, 80px); z-index: 9; background: #fff; gap: 12px; margin-left: -16px; margin-right: -16px; padding: 8px 16px; }
 .library-heading h2, #newEpisode { flex: none; }
