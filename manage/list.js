@@ -256,12 +256,13 @@ function renderEditableMarker(video, marker) {
     ...marker, time: parseTimecode(time.value) ?? marker.time
   }, true, event.shiftKey));
 
-  // Shift+Enter saves the timecode and plays from it in the background, like
-  // Shift-clicking ▶. The field keeps the focus for further ↑／↓ steps.
-  time.addEventListener("keydown", (event) => {
+  // Shift+Enter in either field saves it and plays from the timecode in the
+  // background, like Shift-clicking ▶. The field keeps the focus, for further
+  // ↑／↓ steps or typing.
+  [time, note].forEach((input) => input.addEventListener("keydown", (event) => {
     if (event.key !== "Enter" || !event.shiftKey) return;
     seekMarker(video, { ...marker, time: parseTimecode(time.value) ?? marker.time }, true, true);
-  });
+  }));
 
   row.append(play, time, note, remove);
   return row;

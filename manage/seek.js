@@ -58,7 +58,7 @@ async function loadMuted(tab, url, active) {
 // Returns the tab to seek in, whether it was muted to load the video, and
 // whether it was newly opened. active false leaves an existing tab where it is.
 // A new tab is always shown: Chrome does not load media in a tab that has
-// never been visible, so seekMarker switches back once the page has loaded.
+// never been visible.
 async function tabForVideo(video, url, active) {
   if (settings.reuseTab) {
     const reused = await playerTab();
@@ -75,6 +75,25 @@ async function tabForVideo(video, url, active) {
   else found = { ...await loadMuted(await chrome.tabs.create({ url: "about:blank", active: true }), url, true), created: true };
   if (settings.reuseTab) await chrome.storage.session.set({ [PLAYER_TAB_KEY]: found.tab.id });
   return found;
+}
+
+// Waits until a video in the tab has started loading (readyState 1 or more),
+// which shows Chrome is no longer holding its media back. A YouTube ad counts.
+async function waitForMedia(tabId, timeoutMs = 15000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const [{ result }] = await chrome.scripting.executeScript({
+        target: { tabId },
+        world: "MAIN",
+        func: () => [...document.querySelectorAll("video")].some((video) => video.readyState >= 1)
+      });
+      if (result) return;
+    } catch {
+      // The page is still loading and cannot be scripted yet.
+    }
+    await sleep(300);
+  }
 }
 
 async function returnToManagePage() {
@@ -112,29 +131,19 @@ async function seekMarker(video, marker, play, background = false) {
     const { tab } = opened;
     if (!background) await chrome.windows.update(tab.windowId, { focused: true });
     else if (opened.created) {
+      // Show the new tab until its video starts loading; a loaded page is not
+      // enough, since Chrome still holds the media back once it is hidden again.
       await waitForVideoPage(tab.id, video.videoKey);
+      await waitForMedia(tab.id);
       await returnToManagePage();
     }
 
-    // Chrome does not load media in a tab that has never been shown, such as
-    // one opened in the background. If the player is not ready soon, show the
-    // tab until it is, then go back to the manage page.
-    let ready = await waitForPlayer(adapter, tab.id, background ? 3000 : undefined);
-    if (!ready && background) {
-      // Showing it starts the page's autoplay from the beginning, so mute first.
-      if (!opened.muted && !mutedByUser(await chrome.tabs.get(tab.id))) {
-        await chrome.tabs.update(tab.id, { muted: true });
-        opened.muted = true;
-      }
-      await chrome.tabs.update(tab.id, { active: true });
-      ready = await waitForPlayer(adapter, tab.id);
-      await returnToManagePage();
-    }
-    if (!ready) throw new Error("影片播放器載入逾時");
+    if (!(await waitForPlayer(adapter, tab.id))) throw new Error("影片播放器載入逾時");
     if (play) await adapter.play(tab.id, target);
     else await adapter.cue(tab.id, target);
-    // A YouTube ad can bring its tab to the front while it plays.
-    if (background && (await chrome.tabs.get(tab.id)).active) await returnToManagePage();
+    // A YouTube ad can bring a new tab to the front while it plays. An existing
+    // tab is left alone in the background.
+    if (background && opened.created && (await chrome.tabs.get(tab.id)).active) await returnToManagePage();
     // Give the player a moment to leave the old position before sound returns.
     if (opened.muted) await sleep(300);
   } catch (error) {
