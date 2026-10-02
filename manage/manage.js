@@ -42,9 +42,16 @@ document.querySelectorAll("#modes button").forEach((button) => {
   button.addEventListener("click", () => chrome.storage.local.set({ markerMode: button.dataset.mode }));
 });
 
+// Library totals for edit mode; they do not depend on the search.
+function renderStats() {
+  const markers = videos.reduce((sum, video) => sum + video.markers.length, 0);
+  $("libraryStats").textContent = `(V:${videos.length},M:${markers},E:${Library.episodes(snapshot).length})`;
+}
+
 async function refreshList() {
   snapshot = await chrome.storage.local.get(null);
   videos = Library.videos(snapshot);
+  renderStats();
   renderList();
   refreshTargets();
 }
