@@ -250,11 +250,11 @@ function renderEditableMarker(video, marker) {
 
   const play = element("button", "marker-preview", "▶");
   play.type = "button";
-  play.title = "從此 Marker 播放";
+  play.title = "從此 Marker 播放（Shift+點選：在背景分頁播放，留在管理頁）";
   play.setAttribute("aria-label", "從此 Marker 播放");
-  play.addEventListener("click", () => seekMarker(video, {
+  play.addEventListener("click", (event) => seekMarker(video, {
     ...marker, time: parseTimecode(time.value) ?? marker.time
-  }, true));
+  }, true, event.shiftKey));
 
   row.append(play, time, note, remove);
   return row;
