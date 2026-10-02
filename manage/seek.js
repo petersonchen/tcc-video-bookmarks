@@ -37,21 +37,32 @@ async function waitForVideoPage(tabId, videoKey, timeoutMs = 30000) {
   throw new Error("影片頁面載入逾時");
 }
 
-async function tabForVideo(video) {
+// A page that loads a video starts playing it from the beginning before the
+// player is ready to seek, so the tab stays muted until the seek is done.
+// muted says whether this code muted it and must unmute it afterwards.
+async function loadMuted(tab, url) {
+  const muted = !tab.mutedInfo?.muted;
+  if (muted) await chrome.tabs.update(tab.id, { muted: true });
+  return { tab: await chrome.tabs.update(tab.id, { url, active: true }), muted };
+}
+
+// Returns the tab to seek in, and whether it was muted to load the video.
+async function tabForVideo(video, url) {
   if (settings.reuseTab) {
     const reused = await playerTab();
     if (reused) {
-      if (videoKeyFromUrl(reused.url) === video.videoKey) return chrome.tabs.update(reused.id, { active: true });
-      const tab = await chrome.tabs.update(reused.id, { url: video.pageUrl, active: true });
-      await waitForVideoPage(tab.id, video.videoKey);
-      return tab;
+      if (videoKeyFromUrl(reused.url) === video.videoKey) return { tab: await chrome.tabs.update(reused.id, { active: true }), muted: false };
+      const loaded = await loadMuted(reused, url);
+      await waitForVideoPage(loaded.tab.id, video.videoKey);
+      return loaded;
     }
   }
-  let tab = await findVideoTab(video.videoKey);
-  if (tab) tab = await chrome.tabs.update(tab.id, { active: true });
-  else tab = await chrome.tabs.create({ url: video.pageUrl, active: true });
-  if (settings.reuseTab) await chrome.storage.session.set({ [PLAYER_TAB_KEY]: tab.id });
-  return tab;
+  let found = await findVideoTab(video.videoKey);
+  if (found) found = { tab: await chrome.tabs.update(found.id, { active: true }), muted: false };
+  // Open a blank tab first so it is muted before the video page starts loading.
+  else found = await loadMuted(await chrome.tabs.create({ url: "about:blank", active: true }), url);
+  if (settings.reuseTab) await chrome.storage.session.set({ [PLAYER_TAB_KEY]: found.tab.id });
+  return found;
 }
 
 // A new tab starts loading before its player exists, so poll until it can seek.
@@ -76,15 +87,23 @@ async function seekMarker(video, marker, play) {
     return;
   }
 
+  const target = seekTarget(marker.time, settings.cueLead);
+  let opened;
   try {
-    const tab = await tabForVideo(video);
+    // Adapters that support a start time in the URL load the video there directly.
+    opened = await tabForVideo(video, adapter.startUrl?.(video.pageUrl, target) || video.pageUrl);
+    const { tab } = opened;
     await chrome.windows.update(tab.windowId, { focused: true });
 
     if (!(await waitForPlayer(adapter, tab.id))) throw new Error("影片播放器載入逾時");
-    const target = seekTarget(marker.time, settings.cueLead);
     if (play) await adapter.play(tab.id, target);
     else await adapter.cue(tab.id, target);
+    // Give the player a moment to leave the old position before sound returns.
+    if (opened.muted) await sleep(300);
   } catch (error) {
     showToast(`無法${play ? "播放" : "CUE"}「${marker.note || DEFAULT_MARKER_NOTE}」：${error.message}`);
+  } finally {
+    // The tab may have been closed meanwhile.
+    if (opened?.muted) await chrome.tabs.update(opened.tab.id, { muted: false }).catch(() => {});
   }
 }

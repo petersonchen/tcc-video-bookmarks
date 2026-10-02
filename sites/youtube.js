@@ -10,6 +10,13 @@ window.SiteAdapters.push({
     return typeof url === "string" && url.startsWith("https://www.youtube.com/");
   },
 
+  // YouTube starts a watch page at its t parameter, so a new page skips the opening.
+  startUrl(pageUrl, time) {
+    const url = new URL(pageUrl);
+    url.searchParams.set("t", `${Math.floor(time)}s`);
+    return url.href;
+  },
+
   async getState(tabId) {
     return chrome.tabs.sendMessage(tabId, { type: "GET_VIDEO_STATE" });
   },
