@@ -117,7 +117,7 @@ test('Full backup restores shared membership, dates, tombstones, settings and me
   const all = seed();
   all[`markers:${videoKey}`].push(marker('deleted', { deletedAt: date }));
   all['videos:tcc:empty'] = { title: 'metadata only' };
-  all.settings = { recentEpisodes: 3 };
+  all.settings = { recentEpisodes: 3, lastEpisodeId: "b" };
   all.markerMode = 'edit';
   const parsed = exported(all, '', true);
   const restored = library.importUpdates(library.planImport(parsed, {}, '', ''), {});
@@ -128,6 +128,7 @@ test('Full backup restores shared membership, dates, tombstones, settings and me
   assert.equal(restored['episode:a'].updatedAt, date);
   assert.equal(restored['videos:tcc:empty'].title, 'metadata only');
   assert.equal(restored.settings.recentEpisodes, 3);
+  assert.equal(restored.settings.lastEpisodeId, "b");
   assert.equal(restored.markerMode, 'edit');
   const merged = library.importUpdates(library.planImport(parsed, restored, '', ''), restored);
   assert.equal(library.episodes(merged).length, 3);
@@ -159,4 +160,43 @@ test('Invalid JSON, duplicate IDs, mismatched URLs and dangling members fail bef
     assert.ok(parsed.errors.length);
     assert.throws(() => library.planImport(parsed, {}, '', ''));
   }
+});
+
+test('Numbered Episode search matches prefixes, with case and spacing support', () => {
+  for (const name of ['ep102', 'EP102', 'EP 102', 'ep102 訪談', 'ep0102', 'ep1020']) {
+    assert.equal(library.matchEpisodeTerm(name, 'ep102'), true);
+  }
+  for (const name of ['ep101', 'ep103', 'ep1102', 'backlog']) {
+    assert.equal(library.matchEpisodeTerm(name, 'ep102'), false);
+  }
+  assert.equal(library.matchEpisodeTerm('ep1', 'ep1'), true);
+  assert.equal(library.matchEpisodeTerm('ep11', 'ep1'), true);
+  for (const name of ['ep10', 'ep101', 'ep102', 'ep103', 'EP 103']) {
+    assert.equal(library.matchEpisodeTerm(name, 'ep10'), true);
+  }
+  assert.equal(library.matchEpisodeTerm('ep110', 'ep10'), false);
+  assert.equal(library.matchEpisodeTerm('ep102', '交通'), null);
+});
+
+test('Batch membership undo restores removed videos while preserving later changes and order', () => {
+  assert.deepEqual(plain(library.restoreEpisodeVideos(['b', 'd'], ['a', 'b', 'c', 'd'], ['a', 'c'])), ['a', 'b', 'c', 'd']);
+  const restored = plain(library.restoreEpisodeVideos(['d', 'b', 'new'], ['a', 'b', 'c', 'd'], ['a', 'c']));
+  assert.deepEqual(restored.filter(key => !['a', 'c'].includes(key)), ['d', 'b', 'new']);
+  assert.deepEqual([...restored].sort(), ['a', 'b', 'c', 'd', 'new']);
+  assert.deepEqual(plain(library.restoreEpisodeVideos(['a', 'b'], ['a', 'b'], ['a'])), ['a', 'b']);
+});
+
+test('Removal plan uses selected Episode occurrences, skips backlog and other memberships', () => {
+  const all = seed();
+  const rows = [
+    { episodeId: 'a', videoKey }, { episodeId: 'b', videoKey },
+    { episodeId: 'a', videoKey }, { episodeId: '', videoKey },
+    { episodeId: 'missing', videoKey }
+  ];
+  const groups = plain(library.planRemovals(all, rows));
+  assert.deepEqual(groups.map(group => group.episodeId).sort(), ['a', 'b']);
+  assert.ok(groups.every(group => group.videoKeys.length === 1));
+  assert.equal(groups.some(group => group.episodeId === 'c'), false);
+  all['episode:b'].deletedAt = date;
+  assert.deepEqual(plain(library.planRemovals(all, rows)).map(group => group.episodeId), ['a']);
 });

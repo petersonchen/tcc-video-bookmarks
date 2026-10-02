@@ -31,18 +31,22 @@
 
 在 popup 按「管理」開啟管理頁。清單依 **Episode → 影片 → Marker** 顯示，不收合各 Episode。
 
-- 按「＋ 新增 Episode」建立空的 Episode，例如 `ep1`、`ep2`；可改名或刪除。名稱去除前後空白，不區分大小寫，不能重名；`backlog` 是保留名稱。Episode 使用固定 ID，改名不影響影片歸屬。
+- EDIT 模式可按「＋ 新增 Episode」建立空的 Episode，例如 `ep1`、`ep2`；可改名或刪除。CUE／PLAY 模式隱藏新增、改名、刪除，匯出在所有模式都可用。名稱去除前後空白，不區分大小寫，不能重名；`backlog` 是保留名稱。Episode 使用固定 ID，改名不影響影片歸屬。
 - Episode 依名稱自然排序，由大到小，例如 `ep12`、`ep11`、`ep2`、`ep1`；「最近」表示名稱排序，不是建立或修改日期。
 - 未搜尋時預設顯示最近 10 個 Episode，可在設定調整數量，0 表示全部。搜尋涵蓋全部 Episode 與 backlog，不受設定限制。
-- **backlog** 固定在最下面，不計入 Episode 顯示數量，僅顯示未加入任何 Episode 的影片，依 Marker 的最後修改時間由新到舊排列。尚未歸屬的新影片自動進入 backlog；未顯示的舊 Episode 仍算歸屬。
+- **backlog** 在 EDIT 模式顯示；CUE／PLAY 未搜尋時隱藏，搜尋時仍涵蓋 backlog。顯示時固定在最下面，不計入 Episode 顯示數量，僅顯示未加入任何 Episode 的影片，依 Marker 的最後修改時間由新到舊排列。尚未歸屬的新影片自動進入 backlog；未顯示的舊 Episode 仍算歸屬。
 - 每支影片只有一份 Marker。加入 ep1、ep2 時，兩集都顯示全部 Marker；編輯或刪除會反映到所有 Episode。
-- Episode 的「加入影片」可搜尋所有已儲存且有未刪除 Marker 的影片，包括其他 Episode 的影片。同一影片不會重複加入同一 Episode。
-- 「點選 Marker」有 **CUE**、**PLAY**、**EDIT** 模式，預設 PLAY，會記住選擇。
+- 搜尋與 CUE／PLAY／EDIT 控制列固定在畫面上方，捲動時仍可操作。EDIT 模式可直接在主清單勾選影片，或全選目前顯示的影片，再按「加入 Episode」預覽並確認；勾選依各 Episode 中的位置分開記錄，加入時同一影片只處理一次。變更搜尋條件或離開 EDIT 會取消選取。
+- backlog 也透過主清單勾選影片，再按「加入 Episode」處理。同一影片不會重複加入同一 Episode。
+- EDIT 模式多選後可按「從 Episode 移除」。確認視窗依勾選位置列出各 Episode 要移除的影片，不需要再選 Episode；同一影片在未勾選的 Episode 中會保留。backlog 不列入移除，沒有其他歸屬的影片回到 backlog。跨集移除可一次復原，保留後續排序與 Marker 編輯。
+- 「加入 Episode」會記住上次選擇的目標，重新開啟管理頁也會保留；目標已刪除時需重新選擇。Episode 標題不再提供「加入影片」，選取與搜尋都在主清單完成。
+- 「模式」可選 **CUE**、**PLAY**、**EDIT**，預設 PLAY，會記住選擇。
   - **CUE／PLAY**：點選 Marker 切換到影片分頁並跳至該時間；CUE 暫停，PLAY 播放。未開啟的影片會開新分頁，等播放器載入後跳轉；YouTube 會等廣告結束。
   - **EDIT**：修改 Timecode 或標題會更新 Marker 的最後修改時間，建立時間保留。按 × 刪除 Marker，可在 8 秒內復原最近一次刪除。
   - 未搜尋時，可拖影片標題左側的 ⋮⋮ 調整同一 Episode 的影片順序；從 backlog 或其他 Episode 拖到目標 Episode，表示「加入」，保留其他 Episode 的歸屬。各 Episode 的影片順序互相獨立。
-  - 影片的「加入 Episode」可選擇其他 Episode；「移除」只移除目前 Episode 的歸屬。沒有其他歸屬的影片回到 backlog。加入、移除或刪除 Episode 後可在 8 秒內復原最近一次操作，影片與 Marker 會保留。
-- 搜尋可輸入 Episode 名稱、網站、影片標題、Marker 標題或 Timecode。以空白分隔多個詞時，每個詞都要符合。文字依字元順序比對，字元不必相連；只含數字與 `/`、`-`、`:` 的詞需完全相連。網站名稱的開頭（至少兩個字元，例如 `yout`、`tcc`）或 `yt` 會符合該網站。搜尋時不提供拖曳。
+  - 每筆 Marker 的 Timecode 前有 ▶ 按鈕，可從該時間播放以確認內容，Timecode 與標題仍可直接編輯。
+  - 影片旁只提供勾選，加入或移除 Episode 統一透過選取操作。加入、移除或刪除 Episode 後可在 8 秒內復原最近一次操作，影片與 Marker 會保留。
+- 搜尋帶編號的 Episode 名稱時採前綴比對：`ep10` 會符合 `ep101`、`ep102`、`ep103`，`ep102` 會符合 `ep102`、`ep1020`，不會符合 `ep101` 或 `ep103`；大小寫不影響比對，也支援 `EP 102` 名稱。搜尋可輸入 Episode 名稱、網站、影片標題、Marker 標題或 Timecode。以空白分隔多個詞時，每個詞都要符合。文字依字元順序比對，字元不必相連；只含數字與 `/`、`-`、`:` 的詞需完全相連。網站名稱的開頭（至少兩個字元，例如 `yout`、`tcc`）或 `yt` 會符合該網站。搜尋時不提供拖曳。
 - Marker、匯出、匯入、設定區塊可按標題收合；匯出、匯入、設定預設收合。Episode 本身不收合。
 - 在新開分頁 PLAY 時，瀏覽器可能阻擋自動播放，此時影片停在指定時間，需在影片上按播放。
 

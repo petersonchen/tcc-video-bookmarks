@@ -1,0 +1,27 @@
+/* Shared button sizes and states for the management page and popup. */
+button {
+  cursor: pointer;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 7px 13px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  background: #fff;
+  color: #334155;
+}
+button:hover:not(:disabled) { background: #f1f5f9; border-color: #94a3b8; }
+button:active:not(:disabled) { background: #e2e8f0; }
+button:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+button:disabled { opacity: 0.5; cursor: default; }
+.primary, .play { background: #0f172a; border-color: #0f172a; color: #fff; }
+.primary:hover:not(:disabled), .play:hover:not(:disabled) { background: #334155; border-color: #334155; }
+.primary:active:not(:disabled), .play:active:not(:disabled) { background: #1e293b; border-color: #1e293b; }
+.danger { background: #b91c1c; border-color: #b91c1c; color: #fff; }
+.danger:hover:not(:disabled) { background: #991b1b; border-color: #991b1b; }
+.danger:active:not(:disabled) { background: #7f1d1d; border-color: #7f1d1d; }
+.small-button { padding: 3px 9px; font-size: 12px; line-height: 20px; }
+.delete { padding: 3px 7px; border-color: transparent; background: transparent; color: #64748b; font-size: 16px; }
+.delete:hover:not(:disabled) { background: #fef2f2; border-color: transparent; color: #b91c1c; }
+.delete:active:not(:disabled) { background: #fee2e2; }

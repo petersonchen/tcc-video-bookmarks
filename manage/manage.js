@@ -56,7 +56,9 @@ $("recentEpisodes").addEventListener("change", () => run(async () => {
 let markerMode = "play";
 
 async function loadMarkerMode() {
-  markerMode = (await chrome.storage.local.get("markerMode")).markerMode || "play";
+  const nextMode = (await chrome.storage.local.get("markerMode")).markerMode || "play";
+  if (nextMode !== markerMode) { selectedRows.clear(); selectedVideoKeys.clear(); }
+  markerMode = nextMode;
   document.querySelectorAll("#modes button").forEach((button) => {
     button.classList.toggle("active", button.dataset.mode === markerMode);
   });
@@ -72,6 +74,16 @@ let dragging = null;
 let pendingRefresh = false;
 let toastTimer;
 let previewPlan = null;
+const selectedVideoKeys = new Set();
+const selectedRows = new Map();
+let visibleRows = new Map();
+let removeRows = [];
+let removingVideos = false;
+const selectionKey = (episodeId, videoKey) => JSON.stringify([episodeId, videoKey]);
+let visibleVideoKeys = new Set();
+let assignVideoKeys = [];
+let assigningVideos = false;
+
 
 // All UI actions report failures without losing the page.
 async function run(action) {
@@ -122,38 +134,49 @@ function searchTerms() {
 
 function matchesMarker(video, marker, episodeName, terms) {
   const text = `${episodeName} ${video.title} ${formatTime(marker.time)} ${marker.note || ""}`.toLowerCase();
-  return terms.every((term) => siteForTerm(term) === video.site || termMatches(text, term));
+  return terms.every((term) => Library.matchEpisodeTerm(episodeName, term)
+    ?? (siteForTerm(term) === video.site || termMatches(text, term)));
 }
 
 function renderList() {
   const terms = searchTerms();
   const allEpisodes = Library.episodes(snapshot);
   const shown = terms.length || !settings.recentEpisodes ? allEpisodes : allEpisodes.slice(0, settings.recentEpisodes);
-  const groups = [...shown, { id: "", name: "backlog" }];
+  const showBacklog = markerMode === "edit" || terms.length > 0;
+  const groups = [...shown, ...(showBacklog ? [{ id: "", name: "backlog" }] : [])];
   const canDrag = markerMode === "edit" && !terms.length;
   const list = $("list");
   list.textContent = "";
+  visibleVideoKeys = new Set();
+  visibleRows = new Map();
   groups.forEach((episode) => {
     const groupVideos = Library.groupVideos(snapshot, episode.id).map((video) => ({
       ...video, markers: video.markers.filter((marker) => matchesMarker(video, marker, episode.name, terms))
     })).filter((video) => video.markers.length);
     // An empty Episode remains visible without a search, or when its name matches.
-    if (terms.length && !groupVideos.length && !terms.every((term) => termMatches(episode.name.toLowerCase(), term))) return;
+    if (terms.length && !groupVideos.length && !terms.every((term) => Library.matchEpisodeTerm(episode.name, term) ?? termMatches(episode.name.toLowerCase(), term))) return;
     const group = element("section", "episode-group");
     group.dataset.episodeId = episode.id;
     const heading = element("div", "episode-heading");
     heading.append(element("h3", "episode-name", episode.name), element("span", "group-count", `${groupVideos.length} 支影片`));
     const actions = element("div", "group-actions");
     if (episode.id) {
-      actions.append(actionButton("加入影片", () => openAssign(episode.id)),
-        actionButton("匯出", () => generateExport(episode.id)),
-        actionButton("改名", () => openEpisodeDialog("rename", episode.id)),
-        actionButton("刪除", () => openEpisodeDialog("delete", episode.id)));
+      actions.append(actionButton("匯出", () => generateExport(episode.id)));
+      if (markerMode === "edit") {
+        actions.append(actionButton("改名", () => openEpisodeDialog("rename", episode.id)),
+          actionButton("刪除", () => openEpisodeDialog("delete", episode.id)));
+      }
       if (canDrag) enableGroupDrop(group, episode.id);
-    } else actions.append(actionButton("匯出", () => generateExport("")));
+    } else {
+      actions.append(actionButton("匯出", () => generateExport("")));
+    }
     heading.append(actions);
     group.append(heading);
-    groupVideos.forEach((video) => group.append(renderVideo(video, episode.id, canDrag)));
+    groupVideos.forEach((video) => {
+      visibleVideoKeys.add(video.videoKey);
+      visibleRows.set(selectionKey(episode.id, video.videoKey), { episodeId: episode.id, videoKey: video.videoKey });
+      group.append(renderVideo(video, episode.id, canDrag));
+    });
     if (!groupVideos.length) group.append(element("div", "empty", episode.id ? "尚未加入影片" : "沒有尚未加入 Episode 的影片"));
     list.append(group);
   });
@@ -162,6 +185,8 @@ function renderList() {
   const hidden = terms.length ? 0 : allEpisodes.length - shown.length;
   $("listHint").textContent = hidden ? `另有 ${hidden} 個 Episode 未顯示。可用搜尋找到，或在設定增加顯示數量。` : "";
   $("listHint").classList.toggle("hidden", !hidden);
+  for (const key of selectedRows.keys()) if (!visibleRows.has(key)) selectedRows.delete(key);
+  updateSelection();
 }
 
 function renderVideo(video, episodeId, canDrag) {
@@ -184,10 +209,19 @@ function renderVideo(video, episodeId, canDrag) {
     enableDrag(block, handle, episodeId);
   }
   if (markerMode === "edit") {
-    const actions = element("div", "video-actions");
-    actions.append(actionButton("加入 Episode", () => openAssign("", video.videoKey)));
-    if (episodeId) actions.append(actionButton("移除", () => removeVideo(episodeId, video.videoKey)));
-    heading.append(actions);
+    const select = element("input", "video-select");
+    select.type = "checkbox";
+    select.value = video.videoKey;
+    const rowKey = selectionKey(episodeId, video.videoKey);
+    select.dataset.selectionKey = rowKey;
+    select.checked = selectedRows.has(rowKey);
+    select.setAttribute("aria-label", `選取影片：${video.title}`);
+    select.addEventListener("change", () => {
+      if (select.checked) selectedRows.set(rowKey, { episodeId, videoKey: video.videoKey });
+      else selectedRows.delete(rowKey);
+      updateSelection();
+    });
+    heading.prepend(select);
   }
   block.append(heading);
   video.markers.forEach((marker) => block.append(renderMarker(video, marker)));
@@ -271,7 +305,7 @@ function renderMarker(video, marker) {
 }
 
 function renderEditableMarker(video, marker) {
-  const row = element("div", "marker");
+  const row = element("div", "marker marker-editable");
 
   const time = element("input", "marker-edit marker-time");
   time.value = formatTime(marker.time);
@@ -309,7 +343,15 @@ function renderEditableMarker(video, marker) {
     showUndo(video.videoKey, marker, deletedAt);
   }));
 
-  row.append(time, note, remove);
+  const play = element("button", "marker-preview", "▶");
+  play.type = "button";
+  play.title = "從此 Marker 播放";
+  play.setAttribute("aria-label", "從此 Marker 播放");
+  play.addEventListener("click", () => seekMarker(video, {
+    ...marker, time: parseTimecode(time.value) ?? marker.time
+  }, true));
+
+  row.append(play, time, note, remove);
   return row;
 }
 
@@ -354,18 +396,6 @@ async function addVideos(id, keys) {
     updateEpisode(id, (episode) => ({ ...episode, videoKeys: episode.videoKeys.filter((key) => !added.includes(key)) }))));
 }
 
-async function removeVideo(id, videoKey) {
-  const before = await updateEpisode(id, (episode) => ({ ...episode, videoKeys: episode.videoKeys.filter((key) => key !== videoKey) }));
-  const index = before.videoKeys.indexOf(videoKey);
-  showToast(`已從 ${before.name} 移除影片；未加入其他 Episode 的影片會回到 backlog`, "復原", async () => run(() =>
-    updateEpisode(id, (episode) => {
-      if (episode.videoKeys.includes(videoKey)) return episode;
-      const keys = [...episode.videoKeys];
-      keys.splice(Math.max(0, Math.min(index, keys.length)), 0, videoKey);
-      return { ...episode, videoKeys: keys };
-    })));
-}
-
 function openEpisodeDialog(mode, id = "") {
   const episode = snapshot[Library.episodeKey(id)];
   $("episodeDialog").dataset.mode = mode;
@@ -376,12 +406,18 @@ function openEpisodeDialog(mode, id = "") {
   $("episodeDeleteHint").textContent = `刪除 ${episode?.name || ""}？影片與 Marker 會保留；沒有其他歸屬的影片會回到 backlog。`;
   $("episodeDeleteHint").classList.toggle("hidden", mode !== "delete");
   $("episodeSave").textContent = mode === "delete" ? "刪除" : "儲存";
+  $("episodeSave").classList.toggle("danger", mode === "delete");
+  $("episodeSave").classList.toggle("primary", mode !== "delete");
   $("episodeDialogError").textContent = "";
   $("episodeDialog").showModal();
   if (mode !== "delete") $("episodeName").focus();
 }
 
-$("newEpisode").addEventListener("click", () => openEpisodeDialog("new"));
+$("newEpisode").addEventListener("click", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  openEpisodeDialog("new");
+});
 $("episodeForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const mode = $("episodeDialog").dataset.mode;
@@ -415,13 +451,13 @@ $("episodeForm").addEventListener("submit", async (event) => {
   finally { $("episodeSave").disabled = false; }
 });
 
-function populateEpisodes(select, firstOptions, preferred) {
+function populateEpisodes(select, firstOptions, preferred, filter = () => true) {
   const value = preferred === undefined ? select.value : preferred;
   select.replaceChildren();
   firstOptions.forEach(([id, name]) => {
     const option = element("option", "", name); option.value = id; select.append(option);
   });
-  Library.episodes(snapshot).forEach((episode) => {
+  Library.episodes(snapshot).filter(filter).forEach((episode) => {
     const option = element("option", "", episode.name); option.value = episode.id; select.append(option);
   });
   if ([...select.options].some((option) => option.value === value)) select.value = value;
@@ -431,56 +467,157 @@ function refreshTargets() {
   populateEpisodes($("exportEpisode"), [["", "backlog"], ["backup", "完整備份（所有資料）"]]);
   populateEpisodes($("importTarget"), [["", "不指定 Episode"], ["new", "建立新 Episode"]]);
   if ($("assignDialog").open) {
-    populateEpisodes($("assignEpisode"), [["", "選擇 Episode"]]);
+    populateAssignEpisodes();
     renderAssignVideos();
   }
+  if ($("removeDialog").open) renderRemoveGroups();
 }
 
-function openAssign(episodeId = "", videoKey = "") {
-  $("assignDialog").dataset.videoKey = videoKey;
-  $("assignSearch").value = "";
+function updateSelection() {
+  selectedVideoKeys.clear();
+  for (const row of selectedRows.values()) selectedVideoKeys.add(row.videoKey);
+  $("editSelection").classList.toggle("hidden", markerMode !== "edit");
+  $("newEpisode").classList.toggle("hidden", markerMode !== "edit");
+  $("selectionCount").textContent = `已選 ${selectedVideoKeys.size} 支影片${selectedRows.size > selectedVideoKeys.size ? `（${selectedRows.size} 個位置）` : ""}`;
+  $("assignSelected").disabled = selectedVideoKeys.size === 0;
+  $("removeSelected").disabled = !Library.planRemovals(snapshot, [...selectedRows.values()]).length;
+  $("clearSelection").disabled = selectedVideoKeys.size === 0;
+  $("selectAllVideos").disabled = visibleVideoKeys.size === 0;
+  document.querySelectorAll(".video-select").forEach((checkbox) => {
+    checkbox.checked = selectedRows.has(checkbox.dataset.selectionKey);
+  });
+}
+
+$("selectAllVideos").addEventListener("click", () => {
+  for (const [key, row] of visibleRows) selectedRows.set(key, row);
+  updateSelection();
+});
+$("clearSelection").addEventListener("click", () => {
+  selectedRows.clear();
+  selectedVideoKeys.clear();
+  updateSelection();
+});
+$("assignSelected").addEventListener("click", () => run(() => openAssign([...selectedVideoKeys])));
+
+$("removeSelected").addEventListener("click", () => {
+  removeRows = [...selectedRows.values()].filter((row) => row.episodeId);
+  $("removeError").textContent = "";
+  renderRemoveGroups();
+  $("removeDialog").showModal();
+});
+
+function populateAssignEpisodes(preferred) {
+  populateEpisodes($("assignEpisode"), [["", "選擇 Episode"]], preferred);
+}
+
+function openAssign(keys) {
+  assignVideoKeys = [...new Set(keys)];
   $("assignError").textContent = "";
-  populateEpisodes($("assignEpisode"), [["", "選擇 Episode"]], episodeId);
-  $("assignSearchLabel").classList.toggle("hidden", Boolean(videoKey));
+  populateAssignEpisodes(settings.lastEpisodeId || "");
   renderAssignVideos();
   $("assignDialog").showModal();
 }
 
 function renderAssignVideos() {
   const list = $("assignVideos");
-  const selected = new Set([...list.querySelectorAll("input:checked")].map((input) => input.value));
-  const fixed = $("assignDialog").dataset.videoKey;
   const target = snapshot[Library.episodeKey($("assignEpisode").value)];
-  const terms = $("assignSearch").value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const byKey = new Map(videos.map((video) => [video.videoKey, video]));
+  let available = 0;
   list.replaceChildren();
-  videos.forEach((video) => {
-    if ((fixed && fixed !== video.videoKey) || !video.markers.some((marker) => matchesMarker(video, marker, "", terms))) return;
-    const label = element("label", "assign-video");
-    const checkbox = element("input");
-    checkbox.type = "checkbox"; checkbox.value = video.videoKey;
-    checkbox.disabled = target?.videoKeys.includes(video.videoKey) || false;
-    checkbox.checked = !checkbox.disabled && (Boolean(fixed) || selected.has(video.videoKey));
-    label.append(checkbox, element("span", "", `${video.title}${checkbox.disabled ? "（已加入）" : ""}`));
-    list.append(label);
+  assignVideoKeys.forEach((key) => {
+    const video = byKey.get(key);
+    const belongs = target?.videoKeys.includes(key);
+    if (video && !belongs) available++;
+    const status = !video ? "（沒有可用 Marker）" : belongs ? "（已加入）" : "";
+    list.append(element("div", "assign-video", `${video?.title || key}${status}`));
   });
-  if (!list.children.length) list.append(element("div", "empty", "沒有符合的影片"));
-  $("assignSave").disabled = !$("assignEpisode").value || !list.querySelector("input:checked");
+  $("assignSummary").textContent = target
+    ? `選取 ${assignVideoKeys.length} 支影片，將加入 ${available} 支；已加入的影片會略過。`
+    : `選取 ${assignVideoKeys.length} 支影片，請選擇目標 Episode。`;
+  $("assignSave").disabled = assigningVideos || !target || !available;
 }
 
-$("assignSearch").addEventListener("input", renderAssignVideos);
-$("assignEpisode").addEventListener("change", renderAssignVideos);
-$("assignVideos").addEventListener("change", () => {
-  $("assignSave").disabled = !$("assignEpisode").value || !$("assignVideos").querySelector("input:checked");
-});
+$("assignEpisode").addEventListener("change", () => run(async () => {
+  const id = $("assignEpisode").value;
+  const preference = "lastEpisodeId";
+  settings[preference] = id;
+  renderAssignVideos();
+  await withStorageLock(async () => {
+    const stored = (await chrome.storage.local.get("settings")).settings || {};
+    await chrome.storage.local.set({ settings: { ...stored, [preference]: id } });
+  });
+}));
 $("assignForm").addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (assigningVideos) return;
+  assigningVideos = true;
   $("assignSave").disabled = true;
   try {
-    const keys = [...$("assignVideos").querySelectorAll("input:checked")].map((input) => input.value);
-    if (!keys.length || !$("assignEpisode").value) throw new Error("請選擇 Episode 與影片");
-    await addVideos($("assignEpisode").value, keys);
+    const liveKeys = new Set(videos.map((video) => video.videoKey));
+    const keys = assignVideoKeys.filter((key) => liveKeys.has(key));
+    const id = $("assignEpisode").value;
+    if (!keys.length || !id) throw new Error("請選擇 Episode 與影片");
+    await addVideos(id, keys);
+    for (const [key, row] of selectedRows) if (keys.includes(row.videoKey)) selectedRows.delete(key);
+    updateSelection();
     $("assignDialog").close();
-  } catch (error) { $("assignError").textContent = error.message; renderAssignVideos(); }
+  } catch (error) { $("assignError").textContent = error.message; }
+  finally { assigningVideos = false; if ($("assignDialog").open) renderAssignVideos(); }
+});
+
+function renderRemoveGroups() {
+  const groups = Library.planRemovals(snapshot, removeRows);
+  const byKey = new Map(videos.map((video) => [video.videoKey, video]));
+  $("removeGroups").replaceChildren();
+  groups.forEach((group) => {
+    const section = element("section", "remove-group");
+    section.append(element("h3", "episode-name", `${group.name}（${group.videoKeys.length} 支影片）`));
+    group.videoKeys.forEach((key) => section.append(element("div", "assign-video", byKey.get(key)?.title || key)));
+    $("removeGroups").append(section);
+  });
+  $("removeSummary").textContent = `將從 ${groups.length} 個 Episode 移除 ${groups.reduce((sum, group) => sum + group.videoKeys.length, 0)} 筆影片歸屬。`;
+  $("removeSave").disabled = removingVideos || !groups.length;
+}
+
+async function removeMemberships(rows) {
+  const groups = await withStorageLock(async () => {
+    const all = await chrome.storage.local.get(null);
+    const groups = Library.planRemovals(all, rows);
+    const updates = {};
+    for (const group of groups) {
+      const key = Library.episodeKey(group.episodeId);
+      updates[key] = { ...all[key], videoKeys: all[key].videoKeys.filter((videoKey) => !group.videoKeys.includes(videoKey)), updatedAt: new Date().toISOString() };
+    }
+    if (groups.length) await chrome.storage.local.set(updates);
+    return groups;
+  });
+  if (!groups.length) { showToast("所選歸屬已移除"); return; }
+  const count = groups.reduce((sum, group) => sum + group.videoKeys.length, 0);
+  showToast(`已從 ${groups.length} 個 Episode 移除 ${count} 筆影片歸屬`, "復原", () => withStorageLock(async () => {
+    const all = await chrome.storage.local.get(null);
+    const updates = {};
+    groups.forEach((group) => {
+      const key = Library.episodeKey(group.episodeId);
+      const episode = all[key];
+      if (!episode || episode.deletedAt) return;
+      updates[key] = { ...episode, videoKeys: Library.restoreEpisodeVideos(episode.videoKeys, group.beforeKeys, group.videoKeys), updatedAt: new Date().toISOString() };
+    });
+    if (Object.keys(updates).length) await chrome.storage.local.set(updates);
+  }));
+}
+
+$("removeForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (removingVideos) return;
+  removingVideos = true;
+  $("removeSave").disabled = true;
+  try {
+    await removeMemberships(removeRows);
+    for (const row of removeRows) selectedRows.delete(selectionKey(row.episodeId, row.videoKey));
+    updateSelection();
+    $("removeDialog").close();
+  } catch (error) { $("removeError").textContent = error.message; }
+  finally { removingVideos = false; if ($("removeDialog").open) renderRemoveGroups(); }
 });
 
 document.querySelectorAll("[data-close-dialog]").forEach((button) => {
@@ -566,7 +703,11 @@ async function seekMarker(video, marker, play) {
   }
 }
 
-$("search").addEventListener("input", renderList);
+$("search").addEventListener("input", () => {
+  selectedRows.clear();
+  selectedVideoKeys.clear();
+  renderList();
+});
 
 // Re-rendering would drop an edit in progress, so wait until focus leaves the
 // list's inputs.
@@ -713,3 +854,8 @@ $("importApply").addEventListener("click", () => run(async () => {
 $("version").textContent = `v${chrome.runtime.getManifest().version}`;
 migrateLibrary().then(() => Promise.all([loadSettings(), loadMarkerMode()])).then(refreshList)
   .catch((error) => showToast(`無法載入：${error.message}`));
+
+// Keep browser scrolling and keyboard focus clear of the sticky controls.
+new ResizeObserver(([entry]) => {
+  document.documentElement.style.setProperty("--toolbar-height", `${entry.target.offsetHeight + 8}px`);
+}).observe(document.querySelector(".marker-toolbar"));
