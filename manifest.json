@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "MPY Timecode Marker",
+  "name": "soonmarker",
   "version": "0.3.0",
   "description": "Save, cue, and play timecode markers on supported video websites.",
   "permissions": ["storage", "unlimitedStorage", "activeTab", "scripting"],
@@ -17,7 +17,7 @@
   "icons": { "16": "icons/icon-16.png", "32": "icons/icon-32.png", "48": "icons/icon-48.png", "128": "icons/icon-128.png" },
   "action": {
     "default_icon": { "16": "icons/icon-16.png", "32": "icons/icon-32.png", "48": "icons/icon-48.png", "128": "icons/icon-128.png" },
-    "default_title": "MPY Timecode Marker",
+    "default_title": "soonmarker",
     "default_popup": "popup/popup.html"
   },
   "content_scripts": [{

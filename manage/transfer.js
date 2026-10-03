@@ -30,7 +30,7 @@ $("exportDownload").addEventListener("click", () => {
   const url = URL.createObjectURL(new Blob([$("exportText").value], { type: "application/json" }));
   const link = document.createElement("a");
   link.href = url;
-  link.download = `mpy-${(data.episodes[0]?.name || data.kind).replace(/[^\p{L}\p{N}_-]/gu, "_")}.json`;
+  link.download = `soonmarker-${(data.episodes[0]?.name || data.kind).replace(/[^\p{L}\p{N}_-]/gu, "_")}.json`;
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 });

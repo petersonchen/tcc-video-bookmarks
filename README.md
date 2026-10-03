@@ -1,6 +1,6 @@
-# MPY Timecode Marker
+# soonmarker
 
-**MPY Timecode Marker** 是一套 Chrome / Microsoft Edge 瀏覽器擴充功能，可以在支援的網站影片中建立 Timecode Marker，並快速定位、預備及播放指定片段。
+**soonmarker** 是一套 Chrome / Microsoft Edge 瀏覽器擴充功能，可以在支援的網站影片中建立 Timecode Marker，並快速定位、預備及播放指定片段。
 
 本專案採「單一 Extension、多網站支援」的方向設計。網站專屬的播放器控制封裝為 Site Adapter；目前有 `sites/tcc.js`（臺北市議會雲端議事影音）、`sites/youtube.js`（YouTube）與 `sites/ivod.js`（立法院議事轉播 IVOD）。
 
@@ -23,7 +23,7 @@
 ## 使用方式
 
 1. 開啟支援的影音網站並進入影片播放頁。
-2. 在影片播放至需要記錄的位置時，開啟 MPY Timecode Marker。
+2. 在影片播放至需要記錄的位置時，開啟 soonmarker。
 3. 輸入 Marker 說明後，按下「＋ 儲存目前位置」。
 4. 需要使用片段時，按 **CUE** 預備，或按 **PLAY** 直接跳至該時間播放。
 5. 已建立的 Marker 可直接修改 Timecode 與標題。標題是「Marker」或「Marker HH:MM:SS」時，點進去會先全選，直接輸入即可取代。在 Timecode 欄位按 ↑／↓ 可加減 1 秒，按 Enter 或離開欄位後儲存。管理頁 EDIT 模式也相同。
@@ -208,4 +208,4 @@ Copyright © 2026 Peterson Chen.
 
 ## 聲明
 
-MPY Timecode Marker 為獨立開發的瀏覽器輔助工具，並非任何支援網站或機構的官方產品，亦不代表其已對本專案提供背書、認證或合作。
+soonmarker 為獨立開發的瀏覽器輔助工具，並非任何支援網站或機構的官方產品，亦不代表其已對本專案提供背書、認證或合作。

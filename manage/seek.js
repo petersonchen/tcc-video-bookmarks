@@ -119,7 +119,7 @@ async function waitForPlayer(adapter, tabId, timeoutMs = 90000) {
 async function seekMarker(video, marker, play, background = false) {
   const adapter = adapterFor(video.pageUrl);
   if (!adapter) {
-    showToast("這支影片沒有網址，無法開啟。請先在影片頁開啟一次 MPY Timecode Marker。");
+    showToast("這支影片沒有網址，無法開啟。請先在影片頁開啟一次 soonmarker。");
     return;
   }
 

@@ -298,3 +298,17 @@ test('Default notes are the empty, plain, and auto-filled Marker notes', () => {
   for (const note of ['', undefined, 'Marker', 'Marker 00:09:53']) assert.equal(isDefault(note), true, note);
   for (const note of ['開場', 'Marker 9:53', 'Marker 00:09:53 交通']) assert.equal(isDefault(note), false, note);
 });
+
+
+test('soonmarker exports retain compatibility with legacy MPY backups', () => {
+  const data = plain(library.exportData(seed(), null, true));
+  assert.equal(data.format, 'soonmarker');
+  const current = library.parse(JSON.stringify(data));
+  assert.equal(current.errors.length, 0);
+  data.format = 'MPY Timecode Marker';
+  const legacy = library.parse(JSON.stringify(data));
+  assert.equal(legacy.errors.length, 0);
+  assert.deepEqual(plain(legacy), plain(current));
+  data.format = 'unknown';
+  assert.ok(library.parse(JSON.stringify(data)).errors.length > 0);
+});

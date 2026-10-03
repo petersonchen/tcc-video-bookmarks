@@ -1,10 +1,10 @@
 # 隱私權說明
 
-**MPY Timecode Marker** 重視使用者隱私。本文件說明此瀏覽器擴充功能如何處理資料。
+**soonmarker** 重視使用者隱私。本文件說明此瀏覽器擴充功能如何處理資料。
 
 ## 資料儲存
 
-MPY Timecode Marker 會將使用者建立的 Marker 儲存在瀏覽器提供的 `chrome.storage.local` 本機儲存空間。`unlimitedStorage` 權限只用來解除這個本機空間的 10 MB 上限，資料不會因此離開瀏覽器。
+soonmarker 會將使用者建立的 Marker 儲存在瀏覽器提供的 `chrome.storage.local` 本機儲存空間。`unlimitedStorage` 權限只用來解除這個本機空間的 10 MB 上限，資料不會因此離開瀏覽器。
 
 Marker 可能包含：
 
@@ -35,7 +35,7 @@ Marker 可能包含：
 
 ## 網站權限
 
-MPY Timecode Marker 僅會針對明確支援的影音網站申請必要的網站存取權限，以讀取目前影片播放時間及執行 CUE、PLAY 等播放器控制功能。
+soonmarker 僅會針對明確支援的影音網站申請必要的網站存取權限，以讀取目前影片播放時間及執行 CUE、PLAY 等播放器控制功能。
 
 目前版本僅支援 `https://live.tcc.gov.tw/*`、`https://www.youtube.com/*` 與 `https://ivod.ly.gov.tw/*`。未來新增網站支援時，才會加入該網站所需的權限，不會預先要求存取所有網站。
 
@@ -45,7 +45,7 @@ MPY Timecode Marker 僅會針對明確支援的影音網站申請必要的網站
 
 ## 聲明
 
-MPY Timecode Marker 為獨立開發的瀏覽器輔助工具，並非任何支援網站或機構的官方產品，亦不代表其已對本專案提供背書、認證或合作。
+soonmarker 為獨立開發的瀏覽器輔助工具，並非任何支援網站或機構的官方產品，亦不代表其已對本專案提供背書、認證或合作。
 
 ## 聯絡與授權
 

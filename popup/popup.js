@@ -98,7 +98,7 @@ async function init() {
 
   siteAdapter = (window.SiteAdapters || []).find((adapter) => adapter.matches(activeTab?.url));
   if (!siteAdapter) {
-    showError("目前網站尚未支援 MPY Timecode Marker。");
+    showError("目前網站尚未支援 soonmarker。");
     return;
   }
 
